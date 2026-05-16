@@ -1,0 +1,14 @@
+{
+  "name": "laravel-access-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "packageManager": "pnpm@10.23.0",
+  "devDependencies": {
+    "vitepress": "2.0.0-alpha.16"
+  }
+}
