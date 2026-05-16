@@ -8,7 +8,7 @@ return [
     'default_scope_model' => null,
 
     'cache' => [
-        'enabled' => ! app()->environment('testing'),
+        'enabled' => env('APP_ENV') !== 'testing',
         'key' => 'access.permissions',
         'ttl' => null,
     ],
