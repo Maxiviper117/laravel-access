@@ -4,40 +4,48 @@ title: Configure Roles
 
 # Configure Roles
 
-Define reusable role definitions in `config/access.php`.
-
-Roles are bundles of permissions. Assign roles to users in a scope; check permissions in application code.
+Define reusable role definitions in `config/access.php`. The published stub has commented examples — replace them with your actual roles:
 
 ```php
 use App\Enums\Permission;
 
-'roles' => [
-    'Owner' => [
-        Permission::UsersView,
-        Permission::UsersInvite,
-        Permission::UsersManage,
-        Permission::RolesManage,
-        Permission::CompanyUpdate,
-    ],
-    'Admin' => [
-        Permission::UsersView,
-        Permission::UsersInvite,
-        Permission::CompanyUpdate,
-    ],
-    'Member' => [
-        Permission::UsersView,
-    ],
-],
+'roles' => [ // [!code --]
+    // 'Owner' => [ // [!code --]
+    //     App\Enums\Permission::UsersView, // [!code --]
+    // ], // [!code --]
+]; // [!code --]
+'roles' => [ // [!code ++]
+    'Owner' => [ // [!code ++]
+        Permission::UsersView, // [!code ++]
+        Permission::UsersInvite, // [!code ++]
+        Permission::UsersManage, // [!code ++]
+        Permission::RolesManage, // [!code ++]
+        Permission::CompanyUpdate, // [!code ++]
+    ], // [!code ++]
+    'Admin' => [ // [!code ++]
+        Permission::UsersView, // [!code ++]
+        Permission::UsersInvite, // [!code ++]
+        Permission::CompanyUpdate, // [!code ++]
+    ], // [!code ++]
+    'Member' => [ // [!code ++]
+        Permission::UsersView, // [!code ++]
+    ], // [!code ++]
+], // [!code ++]
 ```
 
-Global roles are separate:
+Global roles are separate. Replace the stub's commented block:
 
 ```php
-'global_roles' => [
-    'Platform Admin' => [
-        Permission::SystemManage,
-    ],
-],
+'global_roles' => [ // [!code --]
+    // 'Platform Admin' => [ // [!code --]
+    //     App\Enums\Permission::SystemManage, // [!code --]
+    // ], // [!code --]
+]; // [!code --]
+'global_roles' => [ // [!code ++]
+    'Platform Admin' => [ // [!code ++]
+        Permission::SystemManage, // [!code ++]
+    ], // [!code ++]
+], // [!code ++]
 ```
 
 Global roles are not attached to a company or team. Use them for platform-level administration.
