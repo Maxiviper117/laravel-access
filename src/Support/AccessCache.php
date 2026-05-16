@@ -19,11 +19,19 @@ class AccessCache
 
     public function forget(Model $actor, ?Model $scope = null): void
     {
+        if (! config('access.cache.enabled')) {
+            return;
+        }
+
         Cache::forget($this->key($actor, $scope));
     }
 
     public function clear(): void
     {
+        if (! config('access.cache.enabled')) {
+            return;
+        }
+
         Cache::forever($this->versionKey(), $this->version() + 1);
     }
 

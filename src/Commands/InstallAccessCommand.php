@@ -14,12 +14,12 @@ class InstallAccessCommand extends Command
     public function handle(Filesystem $files): int
     {
         $this->call('vendor:publish', [
-            '--tag' => 'laravel-access-config',
+            '--tag' => 'access-config',
             '--force' => true,
         ]);
 
         $this->call('vendor:publish', [
-            '--tag' => 'laravel-access-migrations',
+            '--tag' => 'access-migrations',
             '--force' => true,
         ]);
 
