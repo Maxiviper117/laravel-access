@@ -132,11 +132,15 @@ Sync the database:
 php artisan access:sync
 ```
 
+`access:sync` syncs role and permission definitions from config to the database.
+
 Use `--dry-run` when you want to preview changes before writing them:
 
 ```bash
 php artisan access:sync --dry-run
 ```
+
+`access:sync` syncs role and permission definitions; `--dry-run` previews changes without writing.
 
 ### Assign a Role
 
@@ -275,6 +279,8 @@ Sync the database:
 ```bash
 php artisan access:sync
 ```
+
+`access:sync` syncs role and permission definitions from config to the database.
 
 ### Assign a Role
 

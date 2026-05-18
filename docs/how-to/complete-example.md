@@ -157,58 +157,309 @@ return [
 ];
 ```
 
-Sync:
+## 4. Create Models & Migrations
 
-```bash
-php artisan access:sync
-```
+Create the following migrations and models. The `users` table already exists from Laravel's default install — you only need to add the `company_user` pivot and the `projects`/`tasks` tables.
 
-## 4. Create Models
+### Migrations
 
 ```php
+// database/migrations/xxxx_xx_xx_000001_create_companies_table.php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('companies', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('companies');
+    }
+};
+```
+
+```php
+// database/migrations/xxxx_xx_xx_000002_create_company_user_pivot_table.php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('company_user', function (Blueprint $table) {
+            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->primary(['company_id', 'user_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('company_user');
+    }
+};
+```
+
+```php
+// database/migrations/xxxx_xx_xx_000003_create_projects_table.php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('projects', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
+            $table->string('status')->default('active');
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('projects');
+    }
+};
+```
+
+```php
+// database/migrations/xxxx_xx_xx_000004_create_tasks_table.php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('tasks', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('project_id')->constrained()->cascadeOnDelete();
+            $table->string('title');
+            $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('status')->default('todo');
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('tasks');
+    }
+};
+```
+
+### Models
+
+Add the `companies()` relationship to `User` (alongside the `HasAccess` trait from section 1):
+
+```php
+// app/Models/User.php
+
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+// Inside the class:
+public function companies(): BelongsToMany
+{
+    return $this->belongsToMany(Company::class);
+}
+```
+
+```php
+// app/Models/Company.php
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Company extends Model
 {
+    /** @use HasFactory<\Database\Factories\CompanyFactory> */
+    use HasFactory;
+
     protected $fillable = ['name', 'slug'];
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class);
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
 }
 ```
 
 ```php
+// app/Models/Project.php
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
+    /** @use HasFactory<\Database\Factories\ProjectFactory> */
+    use HasFactory;
+
     protected $fillable = ['company_id', 'name', 'status'];
 
-    public function company()
+    public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
     }
 }
 ```
 
 ```php
+// app/Models/Task.php
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Task extends Model
 {
+    /** @use HasFactory<\Database\Factories\TaskFactory> */
+    use HasFactory;
+
     protected $fillable = ['project_id', 'title', 'assigned_to', 'status'];
 
-    public function project()
+    public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function assignedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 }
 ```
 
-Company membership is tracked by your own `company_user` pivot table — Laravel Access does not manage memberships.
+Company membership is tracked by your own `company_user` pivot table — Laravel Access does not manage memberships. No separate model is needed; `belongsToMany` on both `User` and `Company` handles it transparently.
+
+### Factories
+
+The seeder uses `Company::factory()`, so create factories that produce sensible defaults:
+
+```php
+// database/factories/CompanyFactory.php
+namespace Database\Factories;
+
+use App\Models\Company;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Company>
+ */
+class CompanyFactory extends Factory
+{
+    protected $model = Company::class;
+
+    public function definition(): array
+    {
+        return [
+            'name' => fake()->company(),
+            'slug' => Str::slug(fake()->unique()->company()),
+        ];
+    }
+}
+```
+
+```php
+// database/factories/ProjectFactory.php
+namespace Database\Factories;
+
+use App\Models\Company;
+use App\Models\Project;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Project>
+ */
+class ProjectFactory extends Factory
+{
+    protected $model = Project::class;
+
+    public function definition(): array
+    {
+        return [
+            'company_id' => Company::factory(),
+            'name' => fake()->sentence(3),
+            'status' => 'active',
+        ];
+    }
+}
+```
+
+```php
+// database/factories/TaskFactory.php
+namespace Database\Factories;
+
+use App\Models\Project;
+use App\Models\Task;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Task>
+ */
+class TaskFactory extends Factory
+{
+    protected $model = Task::class;
+
+    public function definition(): array
+    {
+        return [
+            'project_id' => Project::factory(),
+            'title' => fake()->sentence(6),
+            'assigned_to' => User::factory(),
+            'status' => 'todo',
+        ];
+    }
+}
+```
+
+Now sync the role and permission definitions into the database (migrations and models must exist first since `Company::class` is referenced in the config):
+
+```bash
+php artisan migrate
+php artisan access:sync
+```
 
 ## 5. Write Policies
 
@@ -284,7 +535,7 @@ class TaskPolicy
 }
 ```
 
-Register policies:
+Register policies (optional — Laravel auto-discovers policies when the model and policy follow naming conventions, e.g. `Project` → `ProjectPolicy`):
 
 ```php
 // App\Providers\AuthServiceProvider
@@ -305,34 +556,86 @@ protected $policies = [
 Use the `access` middleware for route-level checks:
 
 ```php
+// routes/web.php
+<?php
+
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TaskController;
+use App\Http\Middleware\SetActiveCompany;
+use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
+
+Route::inertia('/', 'Welcome', [
+    'canRegister' => Features::enabled(Features::registration()),
+])->name('home');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+});
+
 Route::middleware('auth')->group(function () {
 
     // Scoped routes — requires a company parameter
-    Route::prefix('companies/{company}')->group(function () {
+    Route::prefix('companies/{company}')
+        ->middleware(SetActiveCompany::class)
+        ->group(function () {
 
-        Route::get('projects', [ProjectController::class, 'index'])
-            ->middleware('access:projects.view,company');
+            Route::get('projects', [ProjectController::class, 'index'])
+                ->name('companies.projects.index')
+                ->middleware('access:projects.view,company');
 
-        Route::post('projects', [ProjectController::class, 'store'])
-            ->middleware('access:projects.create,company');
+            Route::post('projects', [ProjectController::class, 'store'])
+                ->name('companies.projects.store')
+                ->middleware('access:projects.create,company');
 
-        Route::get('billing', [BillingController::class, 'show'])
-            ->middleware('access:billing.view,company');
-    });
+            Route::get('billing', [BillingController::class, 'show'])
+                ->name('companies.billing.show')
+                ->middleware('access:billing.view,company');
+        });
 
     // Nested routes — policy handles the permission check
     Route::patch('tasks/{task}', [TaskController::class, 'update']);
     Route::delete('tasks/{task}', [TaskController::class, 'destroy']);
 });
+
+require __DIR__.'/settings.php';
 ```
 
-The middleware resolves `company` from the route parameter, looks up the model, and checks the permission in that scope. If the user lacks the permission, it returns `403`.
+The `Company` model uses `getRouteKeyName()` to resolve route parameters by `slug` instead of `id`. The middleware resolves `company` from the route parameter, looks up the model by slug, and checks the permission in that scope. If the user lacks the permission, it returns `403`.
 
 Nested resources like `tasks/{task}` don't need middleware — the policy resolves the company through the relationship.
 
+### Active Company Middleware
+
+The Inertia sharing and other places need to know which company the user is currently acting within. Create middleware that captures it from the route:
+
+```php
+// app/Http/Middleware/SetActiveCompany.php
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class SetActiveCompany
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        if ($company = $request->route('company')) {
+            session(['active_company_id' => $company instanceof \App\Models\Company ? $company->id : $company]);
+        }
+
+        return $next($request);
+    }
+}
+```
+
 ## 7. Build Controllers
 
-Keep controllers thin. Authorize through policies:
+Keep controllers thin. Authorize through policies.
+
+> **Laravel 11+ note:** The base controller no longer includes `AuthorizesRequests` by default, so `$this->authorize()` requires adding `use Illuminate\Foundation\Auth\Access\AuthorizesRequests` to your controller. Prefer `Gate::authorize()` — it works without the trait and anywhere in your codebase.
 
 ```php
 namespace App\Http\Controllers;
@@ -340,12 +643,13 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ProjectController extends Controller
 {
     public function index(Company $company)
     {
-        $this->authorize('viewAny', [Project::class, $company]);
+        Gate::authorize('viewAny', [Project::class, $company]);
 
         $projects = $company->projects()->paginate();
 
@@ -357,7 +661,7 @@ class ProjectController extends Controller
 
     public function store(Request $request, Company $company)
     {
-        $this->authorize('create', [Project::class, $company]);
+        Gate::authorize('create', [Project::class, $company]);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -433,7 +737,7 @@ return (
 
 ## 9. Seed the Database
 
-Create a seeder that sets up roles-per-company for testing:
+Create a seeder that sets up users, a company, and roles-per-company for testing:
 
 ```php
 namespace Database\Seeders;
@@ -447,12 +751,32 @@ class AccessSeeder extends Seeder
 {
     public function run(): void
     {
-        $owner = User::where('email', 'owner@example.com')->first();
-        $admin = User::where('email', 'admin@example.com')->first();
-        $manager = User::where('email', 'manager@example.com')->first();
-        $member = User::where('email', 'member@example.com')->first();
+        $owner = User::firstOrCreate(
+            ['email' => 'owner@example.com'],
+            ['name' => 'Owner', 'password' => bcrypt('password')]
+        );
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            ['name' => 'Admin', 'password' => bcrypt('password')]
+        );
+        $manager = User::firstOrCreate(
+            ['email' => 'manager@example.com'],
+            ['name' => 'Manager', 'password' => bcrypt('password')]
+        );
+        $member = User::firstOrCreate(
+            ['email' => 'member@example.com'],
+            ['name' => 'Member', 'password' => bcrypt('password')]
+        );
 
-        $company = Company::factory()->create(['name' => 'Acme Corp']);
+        $company = Company::factory()->create(['name' => 'Acme Corp', 'slug' => 'acme-corp']);
+
+        // Attach users to the company (membership)
+        $company->users()->attach([
+            $owner->id,
+            $admin->id,
+            $manager->id,
+            $member->id,
+        ]);
 
         // Each user gets a different role in the same company
         $owner->in($company)->assignRole('Owner');
@@ -463,11 +787,10 @@ class AccessSeeder extends Seeder
 }
 ```
 
-Seed and sync:
+Run the seeder (`access:sync` was already run in step 4 — the seeder only assigns existing roles to users, no re-sync needed):
 
 ```bash
 php artisan db:seed --class=AccessSeeder
-php artisan access:sync
 ```
 
 ## 10. Write Tests
@@ -559,7 +882,7 @@ class ProjectCreationTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->postJson("/companies/{$company->id}/projects", [
+            ->postJson("/companies/{$company->slug}/projects", [
                 'name' => 'New Project',
             ]);
 
@@ -575,7 +898,7 @@ class ProjectCreationTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->postJson("/companies/{$company->id}/projects", [
+            ->postJson("/companies/{$company->slug}/projects", [
                 'name' => 'New Project',
             ]);
 
@@ -589,7 +912,7 @@ class ProjectCreationTest extends TestCase
 Inspect a user's permissions in a company:
 
 ```bash
-php artisan access:debug owner@example.com --scope=company:1
+php artisan access:debug owner@example.com --scope=company:acme-corp
 ```
 
 Clear the cache after making config changes during development:
