@@ -27,9 +27,9 @@ class SyncAccessCommand extends Command
         $missingRoles = array_values(array_diff($configuredRoles, Role::query()->pluck('name')->all()));
         $staleRoles = array_values(array_diff(Role::query()->pluck('name')->all(), $configuredRoles));
 
-        $this->report('Permissions to create', $missingPermissions);
+        $this->report('Permissions will be created', $missingPermissions);
         $this->report('Permissions not configured', $stalePermissions);
-        $this->report('Roles to create', $missingRoles);
+        $this->report('Roles will be created', $missingRoles);
         $this->report('Roles not configured', $staleRoles);
 
         if ($dryRun) {
