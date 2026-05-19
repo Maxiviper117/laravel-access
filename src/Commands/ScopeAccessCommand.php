@@ -175,6 +175,13 @@ class ScopeAccessCommand extends Command
 
         $contents = $files->get($path);
         $model = "\\App\\Models\\{$names['studly']}::class";
+        $contents = preg_replace(
+            "/    'default_scope_model' => .*?,\\R/",
+            "    'default_scope_model' => {$model},\n",
+            $contents,
+            1
+        ) ?? $contents;
+
         $teams = <<<PHP
     'teams' => [
         'model' => {$model},

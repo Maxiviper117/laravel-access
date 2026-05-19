@@ -64,6 +64,7 @@ it('scaffolds a renamed scope from the name option', function () {
             ->toContain("'company_members'");
 
         expect(File::get(config_path('access.php')))
+            ->toContain("'default_scope_model' => \\App\\Models\\Company::class")
             ->toContain("'model' => \\App\\Models\\Company::class")
             ->toContain("'singular' => 'company'")
             ->toContain("'plural' => 'companies'")

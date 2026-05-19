@@ -131,6 +131,20 @@ enum Permission: string
 ],
 ```
 
+`access:scope` writes the generated model into both config locations:
+
+```php
+'default_scope_model' => App\Models\Company::class,
+
+'teams' => [
+    'model' => App\Models\Company::class,
+    'singular' => 'company',
+    'plural' => 'companies',
+],
+```
+
+`default_scope_model` is not a table name. It points to the Eloquent model Laravel Access should use when developer commands need to resolve a scope string, such as `access:debug --scope=company:acme-corp`. The table comes from that model.
+
 Sync those role definitions into the database:
 
 ```bash
