@@ -146,6 +146,9 @@ it('can scaffold inertia react invitation pages', function () {
             ->and(resource_path('views/auth/company-invitation-error.blade.php'))->not->toBeFile()
             ->and(resource_path('views/auth/company-invited-register.blade.php'))->not->toBeFile();
 
+        expect(collect(File::directories(resource_path('js/Pages')))->map(fn (string $path) => basename($path))->all())
+            ->toContain('Auth');
+
         expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
             ->toContain('use Inertia\\Inertia;')
             ->toContain("Inertia::render('Auth/CompanyInvitationError'")
@@ -154,6 +157,49 @@ it('can scaffold inertia react invitation pages', function () {
         expect(File::get(resource_path('js/Pages/Auth/CompanyInvitedRegister.tsx')))
             ->toContain("import { Form } from '@inertiajs/react'")
             ->toContain('Create account');
+    } finally {
+        cleanScopeScaffold();
+    }
+});
+
+it('keeps inertia generated page path casing aligned with render names', function () {
+    cleanScopeScaffold();
+
+    try {
+        $this->artisan('access:scope --name=company --frontend=vue --no-concern')
+            ->assertSuccessful();
+
+        expect(resource_path('js/Pages/Auth/CompanyInvitationError.vue'))->toBeFile()
+            ->and(resource_path('js/Pages/Auth/CompanyInvitedRegister.vue'))->toBeFile();
+
+        expect(collect(File::directories(resource_path('js/Pages')))->map(fn (string $path) => basename($path))->all())
+            ->toContain('Auth');
+
+        expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
+            ->toContain("Inertia::render('Auth/CompanyInvitationError'")
+            ->toContain("Inertia::render('Auth/CompanyInvitedRegister'");
+    } finally {
+        cleanScopeScaffold();
+    }
+});
+
+it('uses inertia v3 svelte props syntax for svelte invitation pages', function () {
+    cleanScopeScaffold();
+
+    try {
+        $this->artisan('access:scope --name=company --frontend=svelte --no-concern')
+            ->assertSuccessful();
+
+        expect(resource_path('js/Pages/Auth/CompanyInvitationError.svelte'))->toBeFile()
+            ->and(resource_path('js/Pages/Auth/CompanyInvitedRegister.svelte'))->toBeFile();
+
+        expect(File::get(resource_path('js/Pages/Auth/CompanyInvitedRegister.svelte')))
+            ->toContain('} = $props()')
+            ->not->toContain('export let invitation');
+
+        expect(File::get(resource_path('js/Pages/Auth/CompanyInvitationError.svelte')))
+            ->toContain('} = $props()')
+            ->not->toContain('export let message');
     } finally {
         cleanScopeScaffold();
     }

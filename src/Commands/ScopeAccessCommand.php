@@ -91,6 +91,9 @@ class ScopeAccessCommand extends Command
             'currentColumn' => "current_{$singular}_id",
             'currentRouteKey' => "current_{$singular}",
             'frontend' => $frontend,
+            'inertiaDirectory' => 'Auth',
+            'invitationErrorPage' => Str::studly($singular).'InvitationError',
+            'invitedRegisterPage' => Str::studly($singular).'InvitedRegister',
         ];
     }
 
@@ -173,18 +176,22 @@ class ScopeAccessCommand extends Command
      */
     private function invitationUiFiles(array $names): array
     {
+        $directory = $names['inertiaDirectory'];
+        $errorPage = $names['invitationErrorPage'];
+        $registerPage = $names['invitedRegisterPage'];
+
         return match ($names['frontend']) {
             'react' => [
-                resource_path('js/Pages/Auth/'.$names['studly'].'InvitationError.tsx') => $this->reactErrorPage($names),
-                resource_path('js/Pages/Auth/'.$names['studly'].'InvitedRegister.tsx') => $this->reactRegisterPage($names),
+                resource_path("js/Pages/{$directory}/{$errorPage}.tsx") => $this->reactErrorPage($names),
+                resource_path("js/Pages/{$directory}/{$registerPage}.tsx") => $this->reactRegisterPage($names),
             ],
             'vue' => [
-                resource_path('js/Pages/Auth/'.$names['studly'].'InvitationError.vue') => $this->vueErrorPage($names),
-                resource_path('js/Pages/Auth/'.$names['studly'].'InvitedRegister.vue') => $this->vueRegisterPage($names),
+                resource_path("js/Pages/{$directory}/{$errorPage}.vue") => $this->vueErrorPage($names),
+                resource_path("js/Pages/{$directory}/{$registerPage}.vue") => $this->vueRegisterPage($names),
             ],
             'svelte' => [
-                resource_path('js/Pages/Auth/'.$names['studly'].'InvitationError.svelte') => $this->svelteErrorPage($names),
-                resource_path('js/Pages/Auth/'.$names['studly'].'InvitedRegister.svelte') => $this->svelteRegisterPage($names),
+                resource_path("js/Pages/{$directory}/{$errorPage}.svelte") => $this->svelteErrorPage($names),
+                resource_path("js/Pages/{$directory}/{$registerPage}.svelte") => $this->svelteRegisterPage($names),
             ],
             default => [
                 resource_path("views/auth/{$names['singular']}-invitation-error.blade.php") => $this->errorView($names),
@@ -915,8 +922,10 @@ PHP;
     private function renderInvitationErrorBody(array $n): string
     {
         if ($n['frontend'] !== 'blade') {
+            $component = "{$n['inertiaDirectory']}/{$n['invitationErrorPage']}";
+
             return <<<PHP
-        return Inertia::render('Auth/{$n['studly']}InvitationError', [
+        return Inertia::render('{$component}', [
             'message' => \$message ?? 'This {$n['singular']} invitation cannot be accepted.',
             'invitation' => \$this->invitationProps(\$invitation),
         ]);
@@ -961,8 +970,10 @@ PHP;
     private function renderRegisterFormBody(array $n): string
     {
         if ($n['frontend'] !== 'blade') {
+            $component = "{$n['inertiaDirectory']}/{$n['invitedRegisterPage']}";
+
             return <<<PHP
-        return Inertia::render('Auth/{$n['studly']}InvitedRegister', [
+        return Inertia::render('{$component}', [
             'invitation' => \$this->invitationProps(\$invitation),
         ]);
 
@@ -1168,11 +1179,13 @@ VUE;
     {
         return <<<SVELTE
 <script lang="ts">
-export let message: string
-export let invitation: {
-    code: string
-    email: string
-}
+let { message, invitation }: {
+    message: string
+    invitation: {
+        code: string
+        email: string
+    }
+} = \$props()
 </script>
 
 <main>
@@ -1190,10 +1203,12 @@ SVELTE;
 <script lang="ts">
 import { Form } from '@inertiajs/svelte'
 
-export let invitation: {
-    code: string
-    email: string
-}
+let { invitation }: {
+    invitation: {
+        code: string
+        email: string
+    }
+} = $props()
 </script>
 
 <main>
