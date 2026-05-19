@@ -50,9 +50,9 @@ php artisan access:scope --name=company --notifications
 php artisan access:scope --name=company --frontend=react --notifications
 ```
 
-`access:install --enum` publishes the package config and migrations, generates `app/Enums/Permission.php`, and points `permission_enum` to it when the config value is still `null`.
+`access:install --enum` publishes the package config and migrations, generates `app/Enums/Permission.php`, and adds it to `permission_enums`.
 
-`access:scope --name=company` asks whether to point `permission_enum` to the generated `CompanyPermission` enum when the config value is still `null`. If you want to keep using the app-wide `Permission` enum from `access:install --enum`, answer no in interactive mode or pass `--no-permission-enum`.
+`access:scope --name=company` keeps `Permission.php` as the canonical permission enum and appends starter company permission cases when that file exists.
 
 The command generates the company membership layer:
 
@@ -67,7 +67,6 @@ app/Models/CompanyInvitation.php
 app/Concerns/HasCompanies.php
 app/Http/Middleware/EnsureCompanyMembership.php
 app/Enums/CompanyRole.php
-app/Enums/CompanyPermission.php
 app/Http/Controllers/Auth/CompanyInvitationController.php
 routes/company-invitations.php
 ```
@@ -124,8 +123,8 @@ enum Permission: string
     case TasksCreate = 'tasks.create';
     case TasksUpdate = 'tasks.update';
     case TasksDelete = 'tasks.delete';
-    case MembersInvite = 'members.invite';
-    case MembersManage = 'members.manage';
+    case CompanyMembersInvite = 'company.members.invite';
+    case CompanyMembersManage = 'company.members.manage';
     case BillingView = 'billing.view';
     case CompanyUpdate = 'company.update';
     case SystemManage = 'system.manage';
@@ -134,7 +133,7 @@ enum Permission: string
 
 ## 3. Configure Roles
 
-`access:scope` already points `default_scope_model` to `Company::class`. Keep `permission_enum` pointed at your main app permission enum, then configure scoped roles. Use generated `CompanyRole` enum values so membership roles and access roles stay aligned.
+`access:scope` already points `default_scope_model` to `Company::class`. Keep `Permission.php` listed in `permission_enums`, then configure scoped roles. Use generated `CompanyRole` enum values so membership roles and access roles stay aligned.
 
 ```php
 use App\Enums\CompanyRole;
@@ -144,7 +143,9 @@ use App\Models\Company;
 return [
     'user_model' => 'App\\Models\\User',
 
-    'permission_enum' => Permission::class,
+    'permission_enums' => [
+        Permission::class,
+    ],
 
     'default_scope_model' => Company::class,
 
@@ -164,8 +165,8 @@ return [
             Permission::TasksCreate,
             Permission::TasksUpdate,
             Permission::TasksDelete,
-            Permission::MembersInvite,
-            Permission::MembersManage,
+            Permission::CompanyMembersInvite,
+            Permission::CompanyMembersManage,
             Permission::BillingView,
             Permission::CompanyUpdate,
         ],
@@ -178,7 +179,7 @@ return [
             Permission::TasksCreate,
             Permission::TasksUpdate,
             Permission::TasksDelete,
-            Permission::MembersInvite,
+            Permission::CompanyMembersInvite,
             Permission::BillingView,
         ],
         CompanyRole::Member->value => [
@@ -260,6 +261,8 @@ Run migrations and sync configured access roles:
 php artisan migrate
 php artisan access:sync
 ```
+
+`access:sync` creates and updates the role and permission definitions. It does not assign those roles to users. The scoped assignments happen later with `$user->in($company)->assignRole(...)`, usually in seeders, invitation acceptance, or your member-management UI.
 
 ## 5. Add Project and Task Models
 
@@ -550,7 +553,7 @@ use Maxiviper117\Access\Facades\Access;
             Permission::TasksCreate,
             Permission::TasksUpdate,
             Permission::TasksDelete,
-            Permission::MembersInvite,
+            Permission::CompanyMembersInvite,
             Permission::BillingView,
         ])
     : [],
@@ -563,7 +566,7 @@ The frontend receives a simple permission map:
     'projects.view' => true,
     'projects.create' => true,
     'projects.update' => false,
-    'members.invite' => true,
+    'company.members.invite' => true,
 ]
 ```
 
@@ -623,6 +626,8 @@ Run it:
 ```bash
 php artisan db:seed --class=AccessSeeder
 ```
+
+For production seed/update patterns, including global-only apps, read [Seed roles and permissions](/how-to/seed-roles-and-permissions).
 
 ## 12. Write Tests
 

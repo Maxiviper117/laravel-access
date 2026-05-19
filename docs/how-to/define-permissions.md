@@ -4,7 +4,7 @@ title: Define Permissions
 
 # Define Permissions
 
-Use a backed enum as the source of truth for permission names.
+Use backed enums as the source of truth for permission names. Most apps should start with one canonical `App\Enums\Permission` enum.
 
 Keep permission names stable. They are stored in the database and used by policies, middleware, and frontend permission maps.
 
@@ -25,7 +25,9 @@ enum Permission: string
 Point the package at the enum:
 
 ```php
-'permission_enum' => App\Enums\Permission::class,
+'permission_enums' => [
+    App\Enums\Permission::class,
+],
 ```
 
 Sync it:
@@ -35,6 +37,20 @@ php artisan access:sync
 ```
 
 The sync command creates missing database rows and reports stale permissions before deleting anything.
+
+`access:sync` syncs definitions only. It does not assign roles to users. After syncing, use scoped assignments such as `$user->in($company)->assignRole(...)` or global assignments such as `$user->assignGlobalRole(...)` in your application code or seeders.
+
+For modular apps, list more enums:
+
+```php
+'permission_enums' => [
+    App\Enums\CompanyPermission::class,
+    App\Enums\ProjectPermission::class,
+    App\Enums\BillingPermission::class,
+],
+```
+
+Every enum in `permission_enums` is synced.
 
 ## Naming Guidelines
 
@@ -63,6 +79,8 @@ case Admin = 'admin';
 ```
 
 Roles can change shape over time. Permission names should describe the action you are protecting.
+
+For a full first-time and future update workflow, read [Seed roles and permissions](/how-to/seed-roles-and-permissions).
 
 ## Handling Removed Permissions
 

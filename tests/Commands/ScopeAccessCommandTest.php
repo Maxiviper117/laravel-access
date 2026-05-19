@@ -14,7 +14,6 @@ function cleanScopeScaffold(): void
         app_path('Concerns/HasCompanies.php'),
         app_path('Http/Middleware/EnsureCompanyMembership.php'),
         app_path('Enums/CompanyRole.php'),
-        app_path('Enums/CompanyPermission.php'),
         app_path('Http/Controllers/Auth/CompanyInvitationController.php'),
         app_path('Notifications/CompanyInvitationNotification.php'),
         resource_path('views/auth/company-invitation-error.blade.php'),
@@ -49,10 +48,23 @@ function cleanScopeScaffold(): void
 
 it('scaffolds a renamed scope from the name option', function () {
     $configPath = config_path('access.php');
+    $enumPath = app_path('Enums/Permission.php');
     $bootstrapPath = base_path('bootstrap/app.php');
     $originalBootstrap = File::exists($bootstrapPath) ? File::get($bootstrapPath) : null;
+    $originalEnum = File::exists($enumPath) ? File::get($enumPath) : null;
 
     File::delete($configPath);
+    File::ensureDirectoryExists(dirname($enumPath));
+    File::put($enumPath, <<<'PHP'
+<?php
+
+namespace App\Enums;
+
+enum Permission: string
+{
+    case UsersView = 'users.view';
+}
+PHP);
     File::ensureDirectoryExists(dirname($bootstrapPath));
     File::put($bootstrapPath, <<<'PHP'
 <?php
@@ -85,6 +97,7 @@ PHP);
             ->and(app_path('Concerns/HasCompanies.php'))->toBeFile()
             ->and(app_path('Http/Middleware/EnsureCompanyMembership.php'))->toBeFile()
             ->and(app_path('Enums/CompanyRole.php'))->toBeFile()
+            ->and(app_path('Enums/CompanyPermission.php'))->not->toBeFile()
             ->and(base_path('routes/company-invitations.php'))->toBeFile()
             ->and(resource_path('views/auth/company-invitation-error.blade.php'))->toBeFile()
             ->and(resource_path('views/auth/company-invited-register.blade.php'))->toBeFile()
@@ -125,7 +138,6 @@ PHP);
             ->toContain('class="w-full rounded-md bg-gray-950');
 
         expect(File::get(config_path('access.php')))
-            ->toContain("'permission_enum' => \\App\\Enums\\CompanyPermission::class")
             ->toContain("'default_scope_model' => \\App\\Models\\Company::class")
             ->toContain("'model' => \\App\\Models\\Company::class")
             ->toContain("'singular' => 'company'")
@@ -136,32 +148,24 @@ PHP);
             ->toContain("'company' => \\App\\Http\\Middleware\\EnsureCompanyMembership::class")
             ->toContain("\\Illuminate\\Support\\Facades\\Route::middleware('web')")
             ->toContain("->group(base_path('routes/company-invitations.php'));");
+
+        expect(File::get($enumPath))
+            ->toContain("case CompanyMembersView = 'company.members.view';")
+            ->toContain("case CompanyMembersInvite = 'company.members.invite';")
+            ->toContain("case CompanyMembersManage = 'company.members.manage';")
+            ->toContain("case CompanySettingsManage = 'company.settings.manage';");
     } finally {
         File::delete($configPath);
+        if ($originalEnum === null) {
+            File::delete($enumPath);
+        } else {
+            File::put($enumPath, $originalEnum);
+        }
         if ($originalBootstrap === null) {
             File::delete($bootstrapPath);
         } else {
             File::put($bootstrapPath, $originalBootstrap);
         }
-        cleanScopeScaffold();
-    }
-});
-
-it('can skip assigning the generated permission enum', function () {
-    $configPath = config_path('access.php');
-
-    File::delete($configPath);
-    cleanScopeScaffold();
-
-    try {
-        $this->artisan('access:scope --name=company --no-permission-enum --no-concern')
-            ->assertSuccessful();
-
-        expect(File::get($configPath))
-            ->toContain("'permission_enum' => null")
-            ->toContain("'default_scope_model' => \\App\\Models\\Company::class");
-    } finally {
-        File::delete($configPath);
         cleanScopeScaffold();
     }
 });
@@ -293,7 +297,6 @@ it('supports irregular plural overrides', function () {
             app_path('Concerns/HasAlumni.php'),
             app_path('Http/Middleware/EnsureAlumnusMembership.php'),
             app_path('Enums/AlumnusRole.php'),
-            app_path('Enums/AlumnusPermission.php'),
             app_path('Http/Controllers/Auth/AlumnusInvitationController.php'),
             resource_path('views/auth/alumnus-invitation-error.blade.php'),
             resource_path('views/auth/alumnus-invited-register.blade.php'),

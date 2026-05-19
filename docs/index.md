@@ -11,7 +11,7 @@ The core shape is:
 ```php
 $user->in($company)->assignRole('Owner');
 
-$user->in($company)->can(Permission::UsersInvite);
+$user->in($company)->can(Permission::CompanyMembersInvite);
 ```
 
 Users receive roles inside an explicit scope. Roles contain permissions. Laravel policies decide whether the action is allowed.
@@ -50,6 +50,8 @@ This documentation follows the Diátaxis structure:
 
 For apps that need team, company, workspace, tenant, or organization membership scaffolding, start with [`access:scope`](/how-to/scaffold-team-scopes). It generates the app-owned scope models, membership tables, invitation flow, current scope column, route defaults, and middleware while keeping Laravel Access authorization explicit through `$user->in($scope)`.
 
+Scoped and global roles are different setup paths. Scoped apps put per-company/team/workspace roles in `roles` and assign them with `$user->in($scope)->assignRole(...)`. Global-only apps put app-wide roles in `global_roles` and assign them with `$user->assignGlobalRole(...)`. See [Seed roles and permissions](/how-to/seed-roles-and-permissions) for first-time setup and future updates.
+
 ## Quick Example
 
 ```php
@@ -57,7 +59,7 @@ use App\Enums\Permission;
 
 public function inviteUsers(User $user, Company $company): bool
 {
-    return $user->in($company)->can(Permission::UsersInvite);
+    return $user->in($company)->can(Permission::CompanyMembersInvite);
 }
 ```
 

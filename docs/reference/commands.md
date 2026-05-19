@@ -13,7 +13,7 @@ php artisan access:install
 php artisan access:install --enum
 ```
 
-With `--enum`, the command creates `app/Enums/Permission.php` if it does not already exist and updates `config/access.php` from `permission_enum => null` to `\App\Enums\Permission::class`.
+With `--enum`, the command creates `app/Enums/Permission.php` if it does not already exist and updates `config/access.php` from `permission_enums => []` to `[\App\Enums\Permission::class]`.
 
 ## `access:scope`
 
@@ -24,7 +24,6 @@ php artisan access:scope
 php artisan access:scope --name=company
 php artisan access:scope --name=company --frontend=react
 php artisan access:scope --name=company --notifications
-php artisan access:scope --name=company --no-permission-enum
 php artisan access:scope --name=alumnus --plural=alumni
 php artisan access:scope --name=workspace --force --migrate
 ```
@@ -46,9 +45,6 @@ Options:
 `--notifications`
 : Generates a generic mail notification plus invitation creation/sending methods on the generated invitation controller. In interactive mode, the command asks whether to generate these helpers.
 
-`--no-permission-enum`
-: Leaves `permission_enum` unchanged instead of setting it to the generated `<Scope>Permission::class` when the config value is `null`. In interactive mode, the command asks before writing this config value.
-
 `--force`
 : Overwrites existing scaffolded files.
 
@@ -58,7 +54,7 @@ Options:
 `--no-concern`
 : Skips patching `app/Models/User.php` with the generated `HasXxx` concern.
 
-Generated files include renamed migrations, models, a membership pivot model, invitation model and controller, `HasXxx` concern, `EnsureXxxMembership` middleware, role and permission enums, invitation routes, invite registration views or Inertia pages, config updates, middleware alias registration, and URL defaults.
+Generated files include renamed migrations, models, a membership pivot model, invitation model and controller, `HasXxx` concern, `EnsureXxxMembership` middleware, a role enum, invitation routes, invite registration views or Inertia pages, config updates, middleware alias registration, URL defaults, and starter scope permission cases appended to `app/Enums/Permission.php` when that file exists.
 
 See [Scaffold team scopes](/how-to/scaffold-team-scopes) for the full generated architecture.
 
@@ -83,6 +79,8 @@ Options:
 
 `--force`
 : Skips confirmation when pruning.
+
+`access:sync` syncs definitions from config into the database. It does not assign roles to users. Assign scoped roles with `$user->in($scope)->assignRole(...)` and global roles with `$user->assignGlobalRole(...)`. See [Seed roles and permissions](/how-to/seed-roles-and-permissions).
 
 ## `access:clear`
 

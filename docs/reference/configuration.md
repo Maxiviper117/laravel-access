@@ -31,15 +31,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Permission Enum
+    | Permission Enums
     |--------------------------------------------------------------------------
     |
-    | A backed enum class used by `access:sync` to validate permissions.
+    | Backed enum classes used by `access:sync` to validate permissions.
     | Same for both scoped and global-only setups.
     |
     */
 
-    'permission_enum' => Permission::class,
+    'permission_enums' => [
+        Permission::class,
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -124,19 +126,19 @@ return [
 
     'roles' => [
         CompanyRole::Owner->value => [
-            Permission::UsersView,
-            Permission::UsersInvite,
-            Permission::UsersManage,
+            Permission::CompanyMembersView,
+            Permission::CompanyMembersInvite,
+            Permission::CompanyMembersManage,
             Permission::RolesManage,
             Permission::CompanyUpdate,
         ],
         CompanyRole::Admin->value => [
-            Permission::UsersView,
-            Permission::UsersInvite,
+            Permission::CompanyMembersView,
+            Permission::CompanyMembersInvite,
             Permission::CompanyUpdate,
         ],
         CompanyRole::Member->value => [
-            Permission::UsersView,
+            Permission::CompanyMembersView,
         ],
     ],
 
@@ -187,8 +189,8 @@ return [
 `user_model`
 : The authenticatable model that receives assignments. Same for both modes.
 
-`permission_enum`
-: A backed enum class used by `access:sync`. Same for both modes. If this is `null`, `access:scope --name=company` can set it to the generated `CompanyPermission::class`; existing non-null values are preserved. Use `--no-permission-enum` or answer no to the interactive prompt when you want to keep a separate app-wide enum from `access:install --enum`.
+`permission_enums`
+: Backed enum classes used by `access:sync`. Same for both modes. `access:install --enum` creates `App\Enums\Permission` and writes it here. `access:scope --name=company` adds starter company permission cases to `App\Enums\Permission` when that file exists. Add more enum classes to this array only when you intentionally want modular permission enums.
 
 `default_scope_model`
 : **Scoped:** set to your scope model class (e.g., `Company::class`). **Global-only:** leave as `null`. Used by dev commands to resolve scope strings like `company:1`. This is a model class, not a table name; the model determines its own table.
@@ -205,6 +207,8 @@ return [
 `global_roles`
 : **Scoped:** optional platform-level roles that apply everywhere. **Global-only:** define all your roles here.
 
+The distinction matters when seeding. `roles` are assigned with `$user->in($scope)->assignRole(...)`; `global_roles` are assigned with `$user->assignGlobalRole(...)`. See [Seed roles and permissions](/how-to/seed-roles-and-permissions) for first-time and update workflows.
+
 `cache`
 : Permission resolution caching. Same for both modes.
 
@@ -217,7 +221,7 @@ return [
 'default_scope_model' => Company::class,
 
 'roles' => [
-    CompanyRole::Owner->value => [Permission::UsersView, Permission::UsersInvite],
+    CompanyRole::Owner->value => [Permission::CompanyMembersView, Permission::CompanyMembersInvite],
 ],
 
 'global_roles' => [
@@ -227,7 +231,7 @@ return [
 
 ```php
 $user->in($company)->assignRole(CompanyRole::Owner->value);
-$user->in($company)->can(Permission::UsersInvite);
+$user->in($company)->can(Permission::CompanyMembersInvite);
 ```
 
 ## Global-Only Mode Quick Reference

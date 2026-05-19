@@ -14,7 +14,6 @@ class ScopeAccessCommand extends Command
         {--plural= : Override plural form}
         {--frontend= : Invitation UI stack to generate: blade, react, vue, or svelte}
         {--notifications : Include invitation creation methods and email notification scaffold}
-        {--no-permission-enum : Do not set the generated scope permission enum in config/access.php}
         {--force : Overwrite existing published files}
         {--migrate : Run migrations after scaffolding}
         {--no-concern : Skip patching the User model with the HasXxx concern}';
@@ -42,6 +41,7 @@ class ScopeAccessCommand extends Command
         }
 
         $this->patchConfig($files, $names, $published);
+        $this->patchPermissionEnum($files, $names, $published);
         $this->patchAppServiceProvider($files, $names, $published);
         $this->patchBootstrapMiddleware($files, $names, $published);
 
@@ -81,11 +81,9 @@ class ScopeAccessCommand extends Command
         $plural = Str::of($this->option('plural') ?: Str::plural($singular))->trim()->lower()->snake()->toString();
         $frontend = $this->resolveFrontend();
         $interactive = ! $this->option('name');
-        $assignPermissionEnum = ! $this->option('no-permission-enum');
         $notifications = (bool) $this->option('notifications');
 
         if ($interactive) {
-            $assignPermissionEnum = $this->confirm('Set the generated permission enum in config/access.php?', true);
             $notifications = $this->confirm('Generate invitation email notification helpers?', true);
         }
 
@@ -104,7 +102,6 @@ class ScopeAccessCommand extends Command
             'inertiaDirectory' => 'auth',
             'invitationErrorPage' => Str::studly($singular).'InvitationError',
             'invitedRegisterPage' => Str::studly($singular).'InvitedRegister',
-            'assignPermissionEnum' => $assignPermissionEnum,
             'notifications' => $notifications,
         ];
     }
@@ -174,7 +171,6 @@ class ScopeAccessCommand extends Command
             app_path("Concerns/Has{$studlyPlural}.php") => $this->concern($names),
             app_path("Http/Middleware/Ensure{$studly}Membership.php") => $this->middleware($names),
             app_path("Enums/{$studly}Role.php") => $this->roleEnum($names),
-            app_path("Enums/{$studly}Permission.php") => $this->permissionEnum($names),
             app_path("Http/Controllers/Auth/{$studly}InvitationController.php") => $this->invitationController($names),
             base_path("routes/{$names['singular']}-invitations.php") => $this->routes($names),
         ];
@@ -250,15 +246,6 @@ class ScopeAccessCommand extends Command
 
         $contents = $files->get($path);
         $model = "\\App\\Models\\{$names['studly']}::class";
-        if ($names['assignPermissionEnum']) {
-            $permissionEnum = "\\App\\Enums\\{$names['studly']}Permission::class";
-            $contents = preg_replace(
-                "/    'permission_enum' => null,\\R/",
-                "    'permission_enum' => {$permissionEnum},\n",
-                $contents,
-                1
-            ) ?? $contents;
-        }
 
         $contents = preg_replace(
             "/    'default_scope_model' => .*?,\\R/",
@@ -291,6 +278,43 @@ PHP;
 
         $files->put($path, $contents);
         $published[] = 'Updated config/access.php';
+    }
+
+    /**
+     * @param  array<string, string>  $names
+     * @param  list<string>  $published
+     */
+    private function patchPermissionEnum(Filesystem $files, array $names, array &$published): void
+    {
+        $path = app_path('Enums/Permission.php');
+
+        if (! $files->exists($path)) {
+            $published[] = 'Skipped app/Enums/Permission.php scope permission cases because the file does not exist';
+
+            return;
+        }
+
+        $contents = $files->get($path);
+        $cases = $this->permissionEnumCases($names);
+
+        if (str_contains($contents, $cases[0])) {
+            return;
+        }
+
+        $insert = "\n";
+
+        foreach ($cases as $case) {
+            $insert .= "    {$case}\n";
+        }
+
+        $patched = preg_replace('/\\n}\\s*$/', $insert."}\n", $contents, 1);
+
+        if ($patched === null || $patched === $contents) {
+            return;
+        }
+
+        $files->put($path, $patched);
+        $published[] = 'Updated app/Enums/Permission.php';
     }
 
     /**
@@ -848,29 +872,14 @@ enum {$n['studly']}Role: string
 PHP;
     }
 
-    private function permissionEnum(array $n): string
+    private function permissionEnumCases(array $n): array
     {
-        return <<<PHP
-<?php
-
-namespace App\Enums;
-
-enum {$n['studly']}Permission: string
-{
-    /** View the list of {$n['singular']} members. */
-    case MembersView = '{$n['singular']}.members.view';
-
-    /** Invite new members to the {$n['singular']}. */
-    case MembersInvite = '{$n['singular']}.members.invite';
-
-    /** Manage existing {$n['singular']} members (edit roles, remove, etc.). */
-    case MembersManage = '{$n['singular']}.members.manage';
-
-    /** Manage {$n['singular']} settings (name, slug, etc.). */
-    case SettingsManage = '{$n['singular']}.settings.manage';
-}
-
-PHP;
+        return [
+            "case {$n['studly']}MembersView = '{$n['singular']}.members.view';",
+            "case {$n['studly']}MembersInvite = '{$n['singular']}.members.invite';",
+            "case {$n['studly']}MembersManage = '{$n['singular']}.members.manage';",
+            "case {$n['studly']}SettingsManage = '{$n['singular']}.settings.manage';",
+        ];
     }
 
     private function invitationController(array $n): string

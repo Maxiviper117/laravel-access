@@ -21,7 +21,7 @@ php artisan access:install --enum
 php artisan migrate
 ```
 
-`access:install --enum` publishes config and migrations, creates a starter enum at `app/Enums/Permission.php` when the file does not already exist, and points `permission_enum` in `config/access.php` to `\App\Enums\Permission::class` when it is still `null`.
+`access:install --enum` publishes config and migrations, creates a starter enum at `app/Enums/Permission.php` when the file does not already exist, and adds it to `permission_enums` in `config/access.php`.
 
 Add the trait to your user model:
 
@@ -73,8 +73,8 @@ use App\Models\Company;
 return [
     'user_model' => 'App\\Models\\User',
 
-    'permission_enum' => null, // [!code --]
-    'permission_enum' => Permission::class, // [!code ++]
+    'permission_enums' => [], // [!code --]
+    'permission_enums' => [Permission::class], // [!code ++]
 
     'default_scope_model' => null, // [!code --]
     'default_scope_model' => Company::class, // [!code ++]
@@ -226,8 +226,8 @@ use App\Enums\Permission;
 return [
     'user_model' => 'App\\Models\\User',
 
-    'permission_enum' => null, // [!code --]
-    'permission_enum' => Permission::class, // [!code ++]
+    'permission_enums' => [], // [!code --]
+    'permission_enums' => [Permission::class], // [!code ++]
 
     'default_scope_model' => null,
 

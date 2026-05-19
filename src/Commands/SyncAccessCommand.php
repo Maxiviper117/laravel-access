@@ -64,9 +64,11 @@ class SyncAccessCommand extends Command
     private function configuredPermissionNames(PermissionNormalizer $normalizer): array
     {
         $permissions = [];
-        $enum = config('access.permission_enum');
+        foreach (config('access.permission_enums', []) as $enum) {
+            if (! is_string($enum) || ! enum_exists($enum)) {
+                continue;
+            }
 
-        if (is_string($enum) && enum_exists($enum)) {
             foreach ($enum::cases() as $case) {
                 if ($case instanceof BackedEnum) {
                     $permissions[] = $normalizer->normalize($case);

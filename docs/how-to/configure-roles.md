@@ -6,29 +6,112 @@ title: Configure Roles
 
 Define reusable role definitions in `config/access.php`. The published stub has commented examples — replace them with your actual roles:
 
+There are two role buckets:
+
+- `roles` are scoped roles. Assign them with `$user->in($scope)->assignRole(...)`.
+- `global_roles` are app-wide roles. Assign them with `$user->assignGlobalRole(...)`.
+
+For global-only apps, leave `roles` empty and put your app roles in `global_roles`. For company, team, workspace, or tenant apps, put per-scope roles in `roles` and reserve `global_roles` for platform-level access.
+
+## Choose Permission Enums
+
+Laravel Access syncs permission enums listed in `permission_enums`.
+
+Use the app-wide `Permission` enum as the default source of truth:
+
 ```php
+// config/access.php
+use App\Enums\CompanyRole;
+use App\Enums\Permission;
+
+'permission_enums' => [
+    Permission::class,
+],
+
+'roles' => [
+    CompanyRole::Owner->value => [
+        Permission::CompanyMembersInvite,
+        Permission::CompanySettingsManage,
+        Permission::BillingManage,
+    ],
+],
+```
+
+`access:install --enum` creates `app/Enums/Permission.php` and configures it here. `access:scope --name=company` adds company starter cases to that enum when the file exists:
+
+```php
+enum Permission: string
+{
+    case CompanyMembersView = 'company.members.view';
+    case CompanyMembersInvite = 'company.members.invite';
+    case CompanyMembersManage = 'company.members.manage';
+    case CompanySettingsManage = 'company.settings.manage';
+
+    case ProjectsCreate = 'projects.create';
+    case BillingManage = 'billing.manage';
+}
+```
+
+This is the recommended default. One enum can hold permissions across company membership, projects, billing, reports, and platform administration.
+
+Use multiple permission enums only when you deliberately want module-owned permission files:
+
+```php
+// config/access.php
+use App\Enums\BillingPermission;
+use App\Enums\CompanyPermission;
+use App\Enums\CompanyRole;
+use App\Enums\ProjectPermission;
+
+'permission_enums' => [
+    CompanyPermission::class,
+    ProjectPermission::class,
+    BillingPermission::class,
+],
+
+'roles' => [
+    CompanyRole::Owner->value => [
+        CompanyPermission::MembersView,
+        CompanyPermission::MembersInvite,
+        CompanyPermission::MembersManage,
+        CompanyPermission::SettingsManage,
+    ],
+],
+```
+
+In this modular setup, every enum listed in `permission_enums` is synced by `access:sync`. Role definitions may reference cases from any listed enum.
+
+The role keys and permission values are separate choices:
+
+- Role keys can use `CompanyRole::Owner->value`, `CompanyRole::Admin->value`, and `CompanyRole::Member->value`.
+- Permission values should come from one of the enums configured in `permission_enums`.
+
+## Scoped Roles
+
+```php
+use App\Enums\CompanyRole;
 use App\Enums\Permission;
 
 'roles' => [ // [!code --]
     // 'Owner' => [ // [!code --]
-    //     App\Enums\Permission::UsersView, // [!code --]
+    //     App\Enums\Permission::CompanyMembersView, // [!code --]
     // ], // [!code --]
 ]; // [!code --]
 'roles' => [ // [!code ++]
-    'Owner' => [ // [!code ++]
-        Permission::UsersView, // [!code ++]
-        Permission::UsersInvite, // [!code ++]
-        Permission::UsersManage, // [!code ++]
+    CompanyRole::Owner->value => [ // [!code ++]
+        Permission::CompanyMembersView, // [!code ++]
+        Permission::CompanyMembersInvite, // [!code ++]
+        Permission::CompanyMembersManage, // [!code ++]
         Permission::RolesManage, // [!code ++]
         Permission::CompanyUpdate, // [!code ++]
     ], // [!code ++]
-    'Admin' => [ // [!code ++]
-        Permission::UsersView, // [!code ++]
-        Permission::UsersInvite, // [!code ++]
+    CompanyRole::Admin->value => [ // [!code ++]
+        Permission::CompanyMembersView, // [!code ++]
+        Permission::CompanyMembersInvite, // [!code ++]
         Permission::CompanyUpdate, // [!code ++]
     ], // [!code ++]
-    'Member' => [ // [!code ++]
-        Permission::UsersView, // [!code ++]
+    CompanyRole::Member->value => [ // [!code ++]
+        Permission::CompanyMembersView, // [!code ++]
     ], // [!code ++]
 ], // [!code ++]
 ```
@@ -65,15 +148,15 @@ php artisan access:sync
 ## Assign Roles
 
 ```php
-$user->in($company)->assignRole('Owner');
-$user->in($company)->assignRole('Member');
+$user->in($company)->assignRole(CompanyRole::Owner->value);
+$user->in($company)->assignRole(CompanyRole::Member->value);
 ```
 
 Role names are reusable definitions. A user can be an `Owner` in one company and a `Member` in another:
 
 ```php
-$user->in($companyA)->assignRole('Owner');
-$user->in($companyB)->assignRole('Member');
+$user->in($companyA)->assignRole(CompanyRole::Owner->value);
+$user->in($companyB)->assignRole(CompanyRole::Member->value);
 ```
 
 ## Update Role Permissions
@@ -85,3 +168,5 @@ php artisan access:sync
 ```
 
 The sync command updates the role-permission pivot rows to match config.
+
+For first-time and future seeding workflows, read [Seed roles and permissions](/how-to/seed-roles-and-permissions).

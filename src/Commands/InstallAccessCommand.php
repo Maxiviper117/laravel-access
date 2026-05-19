@@ -32,7 +32,7 @@ class InstallAccessCommand extends Command
                 $this->info('Generated app/Enums/Permission.php.');
             }
 
-            $this->patchPermissionEnumConfig($files);
+            $this->patchPermissionEnumsConfig($files);
         }
 
         $this->line('Next steps: add Maxiviper117\\Access\\Concerns\\HasAccess to your User model, configure config/access.php, then run php artisan migrate && php artisan access:sync.');
@@ -40,7 +40,7 @@ class InstallAccessCommand extends Command
         return self::SUCCESS;
     }
 
-    private function patchPermissionEnumConfig(Filesystem $files): void
+    private function patchPermissionEnumsConfig(Filesystem $files): void
     {
         $path = config_path('access.php');
 
@@ -50,8 +50,8 @@ class InstallAccessCommand extends Command
 
         $contents = $files->get($path);
         $patched = preg_replace(
-            "/    'permission_enum' => null,\\R/",
-            "    'permission_enum' => \\App\\Enums\\Permission::class,\n",
+            "/    'permission_enums' => \\[\\],\\R/",
+            "    'permission_enums' => [\\App\\Enums\\Permission::class],\n",
             $contents,
             1
         );
@@ -61,6 +61,6 @@ class InstallAccessCommand extends Command
         }
 
         $files->put($path, $patched);
-        $this->info('Updated config/access.php permission_enum.');
+        $this->info('Updated config/access.php permission_enums.');
     }
 }

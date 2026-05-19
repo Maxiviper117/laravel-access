@@ -3,7 +3,7 @@
 return [
     'user_model' => 'App\\Models\\User',
 
-    'permission_enum' => null,
+    'permission_enums' => [],
 
     'default_scope_model' => null,
 
