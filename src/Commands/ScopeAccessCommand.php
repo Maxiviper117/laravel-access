@@ -415,8 +415,17 @@ PHP;
             return;
         }
 
-        $contents = preg_replace('/namespace App\\\Models;\\R\\R/', "namespace App\\Models;\n\nuse App\\Concerns\\{$trait};\n", $contents, 1) ?? $contents;
-        $contents = preg_replace('/use ([^;]+);\\R\\{/', "use $1;\n    use {$trait};\n{", $contents, 1) ?? $contents;
+        $import = "use App\\Concerns\\{$trait};";
+        if (preg_match('/namespace [^;]+;/', $contents, $matches)) {
+            $contents = str_replace($matches[0], $matches[0]."\n\n".$import, $contents);
+        } else {
+            $contents = "<?php\n\n".$import."\n".ltrim(substr($contents, 5));
+        }
+
+        if (preg_match('/class User\s+(extends\s+[^{]+)?\s*\{/', $contents, $matches)) {
+            $contents = str_replace($matches[0], $matches[0]."\n    use {$trait};", $contents);
+        }
+
         $files->put($path, $contents);
         $published[] = 'Updated app/Models/User.php';
     }

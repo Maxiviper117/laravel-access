@@ -35,9 +35,54 @@ class InstallAccessCommand extends Command
             $this->patchPermissionEnumsConfig($files);
         }
 
-        $this->line('Next steps: add Maxiviper117\\Access\\Concerns\\HasAccess to your User model, configure config/access.php, then run php artisan migrate && php artisan access:sync.');
+        $this->insertHasAccessTraitIntoUserModel($files);
+
+        $this->line('Next steps: configure config/access.php, then run php artisan migrate && php artisan access:sync.');
 
         return self::SUCCESS;
+    }
+
+    private function insertHasAccessTraitIntoUserModel(Filesystem $files): void
+    {
+        $userModelPath = app_path('Models/User.php');
+
+        if (! $files->exists($userModelPath)) {
+            $userModelPath = app_path('User.php');
+        }
+
+        if (! $files->exists($userModelPath)) {
+            $this->warn('Could not find User model at app/Models/User.php or app/User.php. Please add Maxiviper117\\Access\\Concerns\\HasAccess to your User model manually.');
+
+            return;
+        }
+
+        $contents = $files->get($userModelPath);
+
+        if (str_contains($contents, 'HasAccess')) {
+            $this->info('User model already has HasAccess trait.');
+
+            return;
+        }
+
+        // Add class import
+        $import = "use Maxiviper117\Access\Concerns\HasAccess;";
+        if (preg_match('/namespace [^;]+;/', $contents, $matches)) {
+            $contents = str_replace($matches[0], $matches[0]."\n\n".$import, $contents);
+        } else {
+            $contents = "<?php\n\n".$import."\n".ltrim(substr($contents, 5));
+        }
+
+        // Add "use HasAccess;" inside the class definition
+        if (preg_match('/class User\s+(extends\s+[^{]+)?\s*\{/', $contents, $matches)) {
+            $contents = str_replace($matches[0], $matches[0]."\n    use HasAccess;", $contents);
+        } else {
+            $this->warn('Failed to locate class User inside the User model file. Please add HasAccess trait manually.');
+
+            return;
+        }
+
+        $files->put($userModelPath, $contents);
+        $this->info('Added HasAccess trait to User model.');
     }
 
     private function patchPermissionEnumsConfig(Filesystem $files): void

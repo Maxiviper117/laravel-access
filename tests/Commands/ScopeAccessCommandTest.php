@@ -322,3 +322,36 @@ it('supports irregular plural overrides', function () {
         }
     }
 });
+
+it('patches the User model with the HasScopePlural trait when no-concern is not passed', function () {
+    $userPath = app_path('Models/User.php');
+    File::delete($userPath);
+    cleanScopeScaffold();
+
+    // Create a stub User model
+    File::ensureDirectoryExists(dirname($userPath));
+    File::put($userPath, <<<'PHP'
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class User extends Model
+{
+    protected $guarded = [];
+}
+PHP);
+
+    try {
+        $this->artisan('access:scope --name=company')
+            ->assertSuccessful();
+
+        $userContents = File::get($userPath);
+        expect($userContents)->toContain('use App\Concerns\HasCompanies;')
+            ->and($userContents)->toContain('use HasCompanies;');
+    } finally {
+        File::delete($userPath);
+        cleanScopeScaffold();
+    }
+});
