@@ -75,7 +75,7 @@ enum Permission: string
 Assignments live in the database:
 
 ```php
-$user->in($company)->assignRole(CompanyRole::Owner->value);
+$user->in($company)->assignRole(CompanyRole::Owner);
 $user->assignGlobalRole('Platform Admin');
 ```
 
@@ -135,7 +135,7 @@ class DemoCompanySeeder extends Seeder
             $owner->getKey() => ['role' => CompanyRole::Owner->value],
         ]);
 
-        $owner->in($company)->assignRole(CompanyRole::Owner->value);
+        $owner->in($company)->assignRole(CompanyRole::Owner);
         $owner->switchCompany($company);
     }
 }
@@ -148,7 +148,7 @@ $company->users()->syncWithoutDetaching([
     $owner->getKey() => ['role' => CompanyRole::Owner->value],
 ]);
 
-$owner->in($company)->assignRole(CompanyRole::Owner->value);
+$owner->in($company)->assignRole(CompanyRole::Owner);
 ```
 
 The first line says the user belongs to the company. The second line says what the user may do in that company.
@@ -272,13 +272,13 @@ Do not assign a scoped role without a scope:
 
 ```php
 // Avoid for scoped apps
-$user->assignGlobalRole(CompanyRole::Owner->value);
+$user->assignGlobalRole(CompanyRole::Owner);
 ```
 
 Assign it in the scope:
 
 ```php
-$user->in($company)->assignRole(CompanyRole::Owner->value);
+$user->in($company)->assignRole(CompanyRole::Owner);
 ```
 
 Do not assume membership grants permissions. In apps scaffolded with `access:scope`, membership and access are separate. Attach the user to the scope and assign the access role when you want both.

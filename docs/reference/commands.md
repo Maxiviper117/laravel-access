@@ -6,7 +6,7 @@ title: Commands
 
 ## `access:install`
 
-Publishes config and migrations.
+Publishes config, migrations, and scaffolds reusable Action classes.
 
 ```bash
 php artisan access:install
@@ -14,6 +14,18 @@ php artisan access:install --enum
 ```
 
 With `--enum`, the command creates `app/Enums/Permission.php` if it does not already exist and updates `config/access.php` from `permission_enums => []` to `[\App\Enums\Permission::class]`.
+
+The command also generates five Action classes under `app/Actions/Access/` following the standard Laravel Actions pattern:
+
+| Class | Purpose |
+|---|---|
+| `CreateRole` | Create a dynamic custom role (scoped or global) |
+| `DeleteRole` | Delete a custom role with system-role protection |
+| `SyncRolePermissions` | Sync a full set of permissions onto a role |
+| `AddPermissionToRole` | Add a single permission to a role |
+| `RemovePermissionFromRole` | Remove a single permission from a role |
+
+These classes accept `BackedEnum`, `string`, or `Role` model instances as role identifiers and are safe to use outside the `$user->in($scope)` context. See [Dynamic roles](/how-to/dynamic-roles) for usage examples.
 
 ## `access:scope`
 

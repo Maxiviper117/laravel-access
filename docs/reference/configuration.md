@@ -230,7 +230,7 @@ The distinction matters when seeding. `roles` are assigned with `$user->in($scop
 ```
 
 ```php
-$user->in($company)->assignRole(CompanyRole::Owner->value);
+$user->in($company)->assignRole(CompanyRole::Owner);
 $user->in($company)->can(Permission::CompanyMembersInvite);
 ```
 

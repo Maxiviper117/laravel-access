@@ -15,10 +15,20 @@ class RoleRegistrar
 
     public function allows(array $permissions): Role
     {
-        $role = Role::query()->updateOrCreate(
-            ['name' => $this->name],
-            ['is_global' => $this->global],
-        );
+        $role = Role::query()
+            ->where('name', $this->name)
+            ->whereNull('scope_type')
+            ->whereNull('scope_id')
+            ->first() ?? Role::query()->create([
+                'name' => $this->name,
+                'is_global' => $this->global,
+                'is_system' => true,
+            ]);
+
+        $role->update([
+            'is_global' => $this->global,
+            'is_system' => true,
+        ]);
 
         $ids = collect($permissions)
             ->map(fn (BackedEnum|string $permission): string => app(PermissionNormalizer::class)->normalize($permission))

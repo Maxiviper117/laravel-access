@@ -9,14 +9,14 @@ Use `access:scope` when your app needs team-style membership, invitations, curre
 The generated code is first-party application code. Laravel Access still only answers authorization questions like:
 
 ```php
-$user->in($company)->assignRole(CompanyRole::Admin->value);
+$user->in($company)->assignRole(CompanyRole::Admin);
 $user->in($company)->can(Permission::CompanyMembersInvite);
 ```
 
-When the scaffold generates a role enum, prefer using enum values instead of repeating raw role strings:
+When the scaffold generates a role enum, prefer using direct enum instances instead of repeating raw role strings:
 
 ```php
-$user->in($company)->assignRole(CompanyRole::Admin->value);
+$user->in($company)->assignRole(CompanyRole::Admin);
 ```
 
 The generated membership pivot and invitation model both cast `role` to the generated enum. For `--name=company`, that means `Membership::$role`, `CompanyInvitation::$role`, and `$user->companyRole($company)` use `CompanyRole`.
@@ -238,7 +238,7 @@ From there, use the generated membership layer for "does this user belong to thi
 ```php
 $company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
 
-$user->in($company)->assignRole(CompanyRole::Admin->value);
+$user->in($company)->assignRole(CompanyRole::Admin);
 
 if ($user->in($company)->can(Permission::CompanyMembersInvite)) {
     // Show invite action or allow invite endpoint.
@@ -305,7 +305,7 @@ That is why setup often has two writes:
 ```php
 $company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
 
-$user->in($company)->assignRole(CompanyRole::Admin->value);
+$user->in($company)->assignRole(CompanyRole::Admin);
 ```
 
 The first line makes the user a company member. The second line gives the user Laravel Access permissions inside that company.
@@ -448,5 +448,5 @@ use App\Enums\CompanyRole;
 Then assign access in the generated scope:
 
 ```php
-$user->in($company)->assignRole(CompanyRole::Admin->value);
+$user->in($company)->assignRole(CompanyRole::Admin);
 ```

@@ -104,7 +104,7 @@ Laravel Access still stores permissions, roles, and assignments in the `access_*
 
 ```php
 $company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
-$user->in($company)->assignRole(CompanyRole::Admin->value);
+$user->in($company)->assignRole(CompanyRole::Admin);
 ```
 
 The membership row says the user belongs to the company. The access assignment says the user has the `Admin` authorization role inside that company.

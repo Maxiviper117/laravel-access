@@ -3,6 +3,7 @@
 namespace Maxiviper117\Access\Data;
 
 use BackedEnum;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Maxiviper117\Access\Models\Assignment;
 use Maxiviper117\Access\Models\Permission;
@@ -26,7 +27,150 @@ class AccessContext
         return $clone;
     }
 
-    public function assignRole(string|Role $role): self
+    public function createRole(BackedEnum|string $name, ?string $label = null, ?string $description = null): Role
+    {
+        $roleName = $name instanceof BackedEnum ? $name->value : $name;
+
+        return Role::query()->create([
+            'name' => $roleName,
+            'label' => $label ?? (string) str($roleName)->headline(),
+            'description' => $description,
+            'is_global' => $this->scope === null,
+            'is_system' => false,
+            'scope_type' => $this->scope?->getMorphClass(),
+            'scope_id' => $this->scope?->getKey(),
+        ]);
+    }
+
+    public function deleteRole(BackedEnum|string|Role $role): bool
+    {
+        $roleModel = $this->findRoleInstance($role);
+
+        if (! $roleModel) {
+            return false;
+        }
+
+        if ($roleModel->is_system) {
+            return false;
+        }
+
+        $roleModel->delete();
+        app(AccessCache::class)->forget($this->actor, $this->scope);
+
+        return true;
+    }
+
+    public function syncRolePermissions(BackedEnum|string|Role $role, array $permissions): self
+    {
+        $roleModel = $this->findRoleInstance($role);
+
+        if (! $roleModel) {
+            throw new \InvalidArgumentException('Role not found.');
+        }
+
+        if ($roleModel->is_system) {
+            throw new \InvalidArgumentException('Cannot modify system roles.');
+        }
+
+        $ids = collect($permissions)
+            ->map(fn (BackedEnum|string $permission): string => app(PermissionNormalizer::class)->normalize($permission))
+            ->map(fn (string $name): int => Permission::query()->firstOrCreate(['name' => $name])->getKey())
+            ->all();
+
+        $roleModel->permissions()->sync($ids);
+        app(AccessCache::class)->forget($this->actor, $this->scope);
+
+        return $this;
+    }
+
+    public function addPermissionToRole(BackedEnum|string|Role $role, BackedEnum|string $permission): self
+    {
+        $roleModel = $this->findRoleInstance($role);
+
+        if (! $roleModel) {
+            throw new \InvalidArgumentException('Role not found.');
+        }
+
+        if ($roleModel->is_system) {
+            throw new \InvalidArgumentException('Cannot modify system roles.');
+        }
+
+        $normalized = app(PermissionNormalizer::class)->normalize($permission);
+        $permissionModel = Permission::query()->firstOrCreate(['name' => $normalized]);
+
+        $roleModel->permissions()->syncWithoutDetaching([$permissionModel->getKey()]);
+        app(AccessCache::class)->forget($this->actor, $this->scope);
+
+        return $this;
+    }
+
+    public function removePermissionFromRole(BackedEnum|string|Role $role, BackedEnum|string $permission): self
+    {
+        $roleModel = $this->findRoleInstance($role);
+
+        if (! $roleModel) {
+            throw new \InvalidArgumentException('Role not found.');
+        }
+
+        if ($roleModel->is_system) {
+            throw new \InvalidArgumentException('Cannot modify system roles.');
+        }
+
+        $normalized = app(PermissionNormalizer::class)->normalize($permission);
+        $permissionModel = Permission::query()->where('name', $normalized)->first();
+
+        if ($permissionModel) {
+            $roleModel->permissions()->detach($permissionModel->getKey());
+            app(AccessCache::class)->forget($this->actor, $this->scope);
+        }
+
+        return $this;
+    }
+
+    public function roles(): Collection
+    {
+        $query = Role::query();
+
+        if ($this->scope) {
+            $query->where(function ($q) {
+                $q->where(fn ($sub) => $sub->where('scope_type', $this->scope->getMorphClass())->where('scope_id', $this->scope->getKey()))
+                    ->orWhere(fn ($sub) => $sub->whereNull('scope_type')->whereNull('scope_id'));
+            });
+        } else {
+            $query->whereNull('scope_type')->whereNull('scope_id');
+        }
+
+        return $query->get();
+    }
+
+    private function findRoleInstance(BackedEnum|string|Role $role): ?Role
+    {
+        if ($role instanceof Role) {
+            return $role;
+        }
+
+        $roleName = $role instanceof BackedEnum ? $role->value : $role;
+
+        if ($this->scope) {
+            $scopedRole = Role::query()
+                ->where('name', $roleName)
+                ->where('scope_type', $this->scope->getMorphClass())
+                ->where('scope_id', $this->scope->getKey())
+                ->first();
+
+            if ($scopedRole) {
+                return $scopedRole;
+            }
+        }
+
+        return Role::query()
+            ->where('name', $roleName)
+            ->whereNull('scope_type')
+            ->whereNull('scope_id')
+            ->first();
+    }
+
+    public function assignRole(BackedEnum|string|Role $role): self
     {
         $role = $this->role($role);
 
@@ -36,7 +180,7 @@ class AccessContext
         return $this;
     }
 
-    public function removeRole(string|Role $role): self
+    public function removeRole(BackedEnum|string|Role $role): self
     {
         Assignment::query()
             ->where($this->assignmentAttributes(['role_id' => $this->role($role)->getKey()]))
@@ -47,7 +191,7 @@ class AccessContext
         return $this;
     }
 
-    public function hasRole(string|Role $role): bool
+    public function hasRole(BackedEnum|string|Role $role): bool
     {
         return Assignment::query()
             ->where($this->assignmentAttributes(['role_id' => $this->role($role)->getKey()]))
@@ -132,9 +276,43 @@ class AccessContext
         ], $attributes);
     }
 
-    private function role(string|Role $role): Role
+    private function role(BackedEnum|string|Role $role): Role
     {
-        return $role instanceof Role ? $role : Role::query()->firstOrCreate(['name' => $role]);
+        if ($role instanceof Role) {
+            return $role;
+        }
+
+        $roleName = $role instanceof BackedEnum ? $role->value : $role;
+
+        if ($this->scope) {
+            $scopedRole = Role::query()
+                ->where('name', $roleName)
+                ->where('scope_type', $this->scope->getMorphClass())
+                ->where('scope_id', $this->scope->getKey())
+                ->first();
+
+            if ($scopedRole) {
+                return $scopedRole;
+            }
+        }
+
+        $globalRole = Role::query()
+            ->where('name', $roleName)
+            ->whereNull('scope_type')
+            ->whereNull('scope_id')
+            ->first();
+
+        if ($globalRole) {
+            return $globalRole;
+        }
+
+        return Role::query()->create([
+            'name' => $roleName,
+            'scope_type' => $this->scope?->getMorphClass(),
+            'scope_id' => $this->scope?->getKey(),
+            'is_global' => $this->scope === null,
+            'is_system' => true,
+        ]);
     }
 
     private function permissionName(BackedEnum|string $permission): string

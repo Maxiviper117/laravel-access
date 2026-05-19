@@ -25,21 +25,21 @@ trait HasAccess
         return new AccessContext($this);
     }
 
-    public function assignGlobalRole(string $role): self
+    public function assignGlobalRole(BackedEnum|string $role): self
     {
         $this->access()->assignRole($role);
 
         return $this;
     }
 
-    public function removeGlobalRole(string $role): self
+    public function removeGlobalRole(BackedEnum|string $role): self
     {
         $this->access()->removeRole($role);
 
         return $this;
     }
 
-    public function hasGlobalRole(string $role): bool
+    public function hasGlobalRole(BackedEnum|string $role): bool
     {
         return $this->access()->hasRole($role);
     }

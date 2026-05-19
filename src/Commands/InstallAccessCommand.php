@@ -37,6 +37,8 @@ class InstallAccessCommand extends Command
 
         $this->insertHasAccessTraitIntoUserModel($files);
 
+        $this->generateAccessActions($files);
+
         $this->line('Next steps: configure config/access.php, then run php artisan migrate && php artisan access:sync.');
 
         return self::SUCCESS;
@@ -107,5 +109,27 @@ class InstallAccessCommand extends Command
 
         $files->put($path, $patched);
         $this->info('Updated config/access.php permission_enums.');
+    }
+
+    private function generateAccessActions(Filesystem $files): void
+    {
+        $actions = [
+            'CreateRole' => app_path('Actions/Access/CreateRole.php'),
+            'DeleteRole' => app_path('Actions/Access/DeleteRole.php'),
+            'SyncRolePermissions' => app_path('Actions/Access/SyncRolePermissions.php'),
+            'AddPermissionToRole' => app_path('Actions/Access/AddPermissionToRole.php'),
+            'RemovePermissionFromRole' => app_path('Actions/Access/RemovePermissionFromRole.php'),
+        ];
+
+        $files->ensureDirectoryExists(app_path('Actions/Access'));
+
+        foreach ($actions as $stubName => $destPath) {
+            if (! $files->exists($destPath)) {
+                $files->copy(__DIR__."/../../resources/stubs/{$stubName}.stub", $destPath);
+                $this->info("Generated app/Actions/Access/{$stubName}.php.");
+            } else {
+                $this->info("app/Actions/Access/{$stubName}.php already exists.");
+            }
+        }
     }
 }

@@ -43,17 +43,17 @@ All scoped checks and assignments are made through that context.
 
 ### Role Methods
 
-`assignRole(string|Role $role)`
+`assignRole(BackedEnum|string|Role $role)`
 : Assigns a role in the current scope.
 
-`removeRole(string|Role $role)`
+`removeRole(BackedEnum|string|Role $role)`
 : Removes a role assignment from the current scope.
 
-`hasRole(string|Role $role)`
+`hasRole(BackedEnum|string|Role $role)`
 : Checks whether the actor has a role in the current scope.
 
 `hasAnyRole(array $roles)`
-: Checks whether any listed role is assigned in the current scope.
+: Checks whether any listed role is assigned in the current scope. The array can contain `BackedEnum`, `string`, or `Role` instances.
 
 Role checks are available, but permission checks are preferred in policies.
 
@@ -86,6 +86,26 @@ $user->giveGlobalPermission(Permission::SystemManage);
 ```
 
 Global role assignments have no scope. They are stored with null `scope_type` and `scope_id`.
+
+### Global Role Methods
+
+`assignGlobalRole(BackedEnum|string|Role $role)`
+: Assigns an app-wide global role.
+
+`removeGlobalRole(BackedEnum|string|Role $role)`
+: Removes an app-wide global role.
+
+`hasGlobalRole(BackedEnum|string|Role $role)`
+: Checks whether the actor has an app-wide global role.
+
+`canGlobally(BackedEnum|string $permission)`
+: Checks direct and role-derived permissions globally (outside any scope).
+
+`giveGlobalPermission(BackedEnum|string $permission)`
+: Assigns a direct global permission.
+
+`revokeGlobalPermission(BackedEnum|string $permission)`
+: Removes a direct global permission.
 
 ## Permission Maps
 

@@ -23,6 +23,8 @@ php artisan migrate
 
 `access:install --enum` publishes config and migrations, creates a starter enum at `app/Enums/Permission.php` when the file does not already exist, and adds it to `permission_enums` in `config/access.php`.
 
+The command also scaffolds five reusable Action classes under `app/Actions/Access/` for managing dynamic custom roles: `CreateRole`, `DeleteRole`, `SyncRolePermissions`, `AddPermissionToRole`, and `RemovePermissionFromRole`. These follow the standard Laravel Actions pattern and accept `BackedEnum`, `string`, or `Role` model instances for role identification.
+
 Add the trait to your user model:
 
 ```php

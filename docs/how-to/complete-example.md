@@ -50,7 +50,7 @@ php artisan access:scope --name=company --notifications
 php artisan access:scope --name=company --frontend=react --notifications
 ```
 
-`access:install --enum` publishes the package config and migrations, generates `app/Enums/Permission.php`, and adds it to `permission_enums`.
+`access:install --enum` publishes the package config and migrations, generates `app/Enums/Permission.php`, adds it to `permission_enums`, and scaffolds five reusable Action classes under `app/Actions/Access/` for dynamic role management.
 
 `access:scope --name=company` keeps `Permission.php` as the canonical permission enum and appends starter company permission cases when that file exists.
 
@@ -528,7 +528,7 @@ The notification links to `company.invitations.show`. Existing users can accept 
 Membership and access permissions are still separate. If you want invited users to receive Laravel Access roles immediately, add the matching access assignment inside the generated `acceptInvitation` method:
 
 ```php
-$user->in($invitation->company)->assignRole($invitation->role->value);
+$user->in($invitation->company)->assignRole($invitation->role);
 ```
 
 That keeps the generated `company_members.role` value and Laravel Access role assignment aligned.
@@ -612,9 +612,9 @@ class AccessSeeder extends Seeder
             $member->id => ['role' => CompanyRole::Member->value],
         ]);
 
-        $owner->in($company)->assignRole(CompanyRole::Owner->value);
-        $admin->in($company)->assignRole(CompanyRole::Admin->value);
-        $member->in($company)->assignRole(CompanyRole::Member->value);
+        $owner->in($company)->assignRole(CompanyRole::Owner);
+        $admin->in($company)->assignRole(CompanyRole::Admin);
+        $member->in($company)->assignRole(CompanyRole::Member);
 
         $owner->switchCompany($company);
     }
@@ -650,7 +650,7 @@ class ProjectPolicyTest extends TestCase
         $company = Company::factory()->create();
 
         $company->users()->attach($user, ['role' => CompanyRole::Owner->value]);
-        $user->in($company)->assignRole(CompanyRole::Owner->value);
+        $user->in($company)->assignRole(CompanyRole::Owner);
 
         $this->assertTrue(
             $user->in($company)->can(Permission::ProjectsCreate)
@@ -663,7 +663,7 @@ class ProjectPolicyTest extends TestCase
         $company = Company::factory()->create();
 
         $company->users()->attach($user, ['role' => CompanyRole::Member->value]);
-        $user->in($company)->assignRole(CompanyRole::Member->value);
+        $user->in($company)->assignRole(CompanyRole::Member);
 
         $this->assertFalse(
             $user->in($company)->can(Permission::ProjectsCreate)
@@ -679,8 +679,8 @@ class ProjectPolicyTest extends TestCase
         $companyA->users()->attach($user, ['role' => CompanyRole::Owner->value]);
         $companyB->users()->attach($user, ['role' => CompanyRole::Member->value]);
 
-        $user->in($companyA)->assignRole(CompanyRole::Owner->value);
-        $user->in($companyB)->assignRole(CompanyRole::Member->value);
+        $user->in($companyA)->assignRole(CompanyRole::Owner);
+        $user->in($companyB)->assignRole(CompanyRole::Member);
 
         $this->assertTrue($user->in($companyA)->can(Permission::ProjectsDelete));
         $this->assertFalse($user->in($companyB)->can(Permission::ProjectsDelete));
@@ -706,7 +706,7 @@ class ProjectCreationTest extends TestCase
         $company = Company::factory()->create();
 
         $company->users()->attach($user, ['role' => CompanyRole::Owner->value]);
-        $user->in($company)->assignRole(CompanyRole::Owner->value);
+        $user->in($company)->assignRole(CompanyRole::Owner);
 
         $response = $this
             ->actingAs($user)
@@ -721,7 +721,7 @@ class ProjectCreationTest extends TestCase
         $company = Company::factory()->create();
 
         $company->users()->attach($user, ['role' => CompanyRole::Member->value]);
-        $user->in($company)->assignRole(CompanyRole::Member->value);
+        $user->in($company)->assignRole(CompanyRole::Member);
 
         $response = $this
             ->actingAs($user)

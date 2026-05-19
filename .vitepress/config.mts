@@ -23,6 +23,7 @@ export default defineConfig({
           { text: 'Scaffold team scopes', link: '/how-to/scaffold-team-scopes' },
           { text: 'Define permissions', link: '/how-to/define-permissions' },
           { text: 'Configure roles', link: '/how-to/configure-roles' },
+          { text: 'Dynamic roles', link: '/how-to/dynamic-roles' },
           { text: 'Seed roles and permissions', link: '/how-to/seed-roles-and-permissions' },
           { text: 'Use policies', link: '/how-to/use-policies' },
           { text: 'Share with Inertia', link: '/how-to/share-with-inertia' },

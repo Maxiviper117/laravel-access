@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 /**
  * @property string $name
  * @property bool $is_global
+ * @property bool $is_system
+ * @property string|null $scope_type
+ * @property int|null $scope_id
  * @property Collection<int, Permission> $permissions
  */
 class Role extends Model
@@ -19,6 +22,7 @@ class Role extends Model
 
     protected $casts = [
         'is_global' => 'bool',
+        'is_system' => 'bool',
     ];
 
     public function permissions(): BelongsToMany

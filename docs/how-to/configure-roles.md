@@ -83,8 +83,9 @@ In this modular setup, every enum listed in `permission_enums` is synced by `acc
 
 The role keys and permission values are separate choices:
 
-- Role keys can use `CompanyRole::Owner->value`, `CompanyRole::Admin->value`, and `CompanyRole::Member->value`.
-- Permission values should come from one of the enums configured in `permission_enums`.
+- **Config file keys**: Because PHP array keys must be strings or integers, role keys in `config/access.php` must still use `CompanyRole::Owner->value`, `CompanyRole::Admin->value`, or `CompanyRole::Member->value`.
+- **API Methods**: When assigning, checking, or removing roles, you can pass BackedEnum instances directly (e.g., `CompanyRole::Owner`), as Laravel Access natively resolves backed enums.
+- **Permission values**: Permission values should come from one of the enums configured in `permission_enums`.
 
 ## Scoped Roles
 
@@ -148,15 +149,18 @@ php artisan access:sync
 ## Assign Roles
 
 ```php
-$user->in($company)->assignRole(CompanyRole::Owner->value);
-$user->in($company)->assignRole(CompanyRole::Member->value);
+$user->in($company)->assignRole(CompanyRole::Owner);
+$user->in($company)->assignRole(CompanyRole::Member);
 ```
+
+> [!TIP]
+> Laravel Access natively supports PHP Backed Enums for all role methods. You can pass the enum instance directly (e.g., `CompanyRole::Owner`) without having to append `->value` when assigning, removing, or checking roles.
 
 Role names are reusable definitions. A user can be an `Owner` in one company and a `Member` in another:
 
 ```php
-$user->in($companyA)->assignRole(CompanyRole::Owner->value);
-$user->in($companyB)->assignRole(CompanyRole::Member->value);
+$user->in($companyA)->assignRole(CompanyRole::Owner);
+$user->in($companyB)->assignRole(CompanyRole::Member);
 ```
 
 ## Update Role Permissions

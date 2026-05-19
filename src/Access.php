@@ -30,6 +30,14 @@ class Access
 
     public function findRole(string $name): Role
     {
-        return Role::query()->firstOrCreate(['name' => $name]);
+        return Role::query()
+            ->where('name', $name)
+            ->whereNull('scope_type')
+            ->whereNull('scope_id')
+            ->first() ?? Role::query()->create([
+                'name' => $name,
+                'is_global' => true,
+                'is_system' => true,
+            ]);
     }
 }
