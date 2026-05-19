@@ -175,6 +175,14 @@ class ScopeAccessCommand extends Command
 
         $contents = $files->get($path);
         $model = "\\App\\Models\\{$names['studly']}::class";
+        $permissionEnum = "\\App\\Enums\\{$names['studly']}Permission::class";
+        $contents = preg_replace(
+            "/    'permission_enum' => null,\\R/",
+            "    'permission_enum' => {$permissionEnum},\n",
+            $contents,
+            1
+        ) ?? $contents;
+
         $contents = preg_replace(
             "/    'default_scope_model' => .*?,\\R/",
             "    'default_scope_model' => {$model},\n",

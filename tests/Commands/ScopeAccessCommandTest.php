@@ -100,6 +100,7 @@ PHP);
             ->toContain('abort_if(! $role || $role->level() < CompanyRole::from($minimumRole)->level(), 403);');
 
         expect(File::get(config_path('access.php')))
+            ->toContain("'permission_enum' => \\App\\Enums\\CompanyPermission::class")
             ->toContain("'default_scope_model' => \\App\\Models\\Company::class")
             ->toContain("'model' => \\App\\Models\\Company::class")
             ->toContain("'singular' => 'company'")

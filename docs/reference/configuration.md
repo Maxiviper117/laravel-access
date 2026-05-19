@@ -188,7 +188,7 @@ return [
 : The authenticatable model that receives assignments. Same for both modes.
 
 `permission_enum`
-: A backed enum class used by `access:sync`. Same for both modes.
+: A backed enum class used by `access:sync`. Same for both modes. If this is `null`, `access:scope --name=company` sets it to the generated `CompanyPermission::class`; existing non-null values are preserved.
 
 `default_scope_model`
 : **Scoped:** set to your scope model class (e.g., `Company::class`). **Global-only:** leave as `null`. Used by dev commands to resolve scope strings like `company:1`. This is a model class, not a table name; the model determines its own table.

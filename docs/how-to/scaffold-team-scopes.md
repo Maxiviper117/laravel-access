@@ -158,6 +158,7 @@ use App\Enums\CompanyRole;
 `access:scope` writes the generated model into both config locations:
 
 ```php
+'permission_enum' => App\Enums\CompanyPermission::class,
 'default_scope_model' => App\Models\Company::class,
 
 'teams' => [
@@ -166,6 +167,8 @@ use App\Enums\CompanyRole;
     'plural' => 'companies',
 ],
 ```
+
+The generated permission enum is only written automatically when `permission_enum` is still `null`. If you already configured your own permission enum, the command leaves it in place.
 
 `default_scope_model` is not a table name. It points to the Eloquent model Laravel Access should use when developer commands need to resolve a scope string, such as `access:debug --scope=company:acme-corp`. The table comes from that model.
 
