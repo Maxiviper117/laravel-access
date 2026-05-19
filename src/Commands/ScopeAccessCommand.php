@@ -67,7 +67,7 @@ class ScopeAccessCommand extends Command
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, string|bool>
      */
     private function resolveNames(): array
     {
@@ -130,7 +130,7 @@ class ScopeAccessCommand extends Command
     }
 
     /**
-     * @param  array<string, string>  $names
+     * @param  array<string, string|bool>  $names
      */
     private function confirmNames(array $names): bool
     {
@@ -140,8 +140,8 @@ class ScopeAccessCommand extends Command
     }
 
     /**
-     * @param  array<string, string>  $names
-     * @return array<string, string>
+     * @param  array<string, string|bool>  $names
+     * @return array<string, string|bool>
      */
     private function migrationFiles(array $names): array
     {
@@ -156,8 +156,8 @@ class ScopeAccessCommand extends Command
     }
 
     /**
-     * @param  array<string, string>  $names
-     * @return array<string, string>
+     * @param  array<string, string|bool>  $names
+     * @return array<string, string|bool>
      */
     private function appFiles(array $names): array
     {
@@ -183,8 +183,8 @@ class ScopeAccessCommand extends Command
     }
 
     /**
-     * @param  array<string, string>  $names
-     * @return array<string, string>
+     * @param  array<string, string|bool>  $names
+     * @return array<string, string|bool>
      */
     private function invitationUiFiles(array $names): array
     {
@@ -229,7 +229,7 @@ class ScopeAccessCommand extends Command
     }
 
     /**
-     * @param  array<string, string>  $names
+     * @param  array<string, string|bool>  $names
      * @param  list<string>  $published
      */
     private function patchConfig(Filesystem $files, array $names, array &$published): void
@@ -281,7 +281,7 @@ PHP;
     }
 
     /**
-     * @param  array<string, string>  $names
+     * @param  array<string, string|bool>  $names
      * @param  list<string>  $published
      */
     private function patchPermissionEnum(Filesystem $files, array $names, array &$published): void
@@ -318,7 +318,7 @@ PHP;
     }
 
     /**
-     * @param  array<string, string>  $names
+     * @param  array<string, string|bool>  $names
      * @param  list<string>  $published
      */
     private function patchAppServiceProvider(Filesystem $files, array $names, array &$published): void
@@ -342,7 +342,7 @@ PHP;
     }
 
     /**
-     * @param  array<string, string>  $names
+     * @param  array<string, string|bool>  $names
      * @param  list<string>  $published
      */
     private function patchBootstrapMiddleware(Filesystem $files, array $names, array &$published): void
@@ -397,7 +397,7 @@ PHP;
     }
 
     /**
-     * @param  array<string, string>  $names
+     * @param  array<string, string|bool>  $names
      * @param  list<string>  $published
      */
     private function patchUserModel(Filesystem $files, array $names, array &$published): void
@@ -427,7 +427,7 @@ PHP;
     }
 
     /**
-     * @param  array<string, string>  $n
+     * @param  array<string, string|bool>  $n
      */
     private function scopeMigration(array $n): string
     {
