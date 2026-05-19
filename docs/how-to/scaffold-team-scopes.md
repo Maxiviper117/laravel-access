@@ -82,6 +82,19 @@ app/Providers/AppServiceProvider.php
 bootstrap/app.php
 ```
 
+The `bootstrap/app.php` update registers both the generated middleware alias and the generated invitation route file:
+
+```php
+->withRouting(
+    web: __DIR__.'/../routes/web.php',
+    commands: __DIR__.'/../routes/console.php',
+    health: '/up',
+    then: function (): void {
+        require __DIR__.'/../routes/company-invitations.php';
+    },
+)
+```
+
 Pass `--no-concern` if you do not want the command to patch the `User` model.
 
 ## Use It Effectively With Laravel Access
@@ -194,7 +207,6 @@ public function invite(User $user, Company $company): bool
 
 The main manual wiring left after scaffolding is usually:
 
-- Require the generated `routes/company-invitations.php` file from your route setup.
 - Adjust the generated Blade views to match your starter kit or frontend stack.
 - Add your own UI/controllers for creating companies and sending invitations.
 - Decide whether membership role names should mirror Laravel Access role names.

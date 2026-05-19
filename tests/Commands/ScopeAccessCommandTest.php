@@ -39,8 +39,31 @@ function cleanScopeScaffold(): void
 
 it('scaffolds a renamed scope from the name option', function () {
     $configPath = config_path('access.php');
+    $bootstrapPath = base_path('bootstrap/app.php');
+    $originalBootstrap = File::exists($bootstrapPath) ? File::get($bootstrapPath) : null;
 
     File::delete($configPath);
+    File::ensureDirectoryExists(dirname($bootstrapPath));
+    File::put($bootstrapPath, <<<'PHP'
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        //
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();
+PHP);
     cleanScopeScaffold();
 
     try {
@@ -69,8 +92,17 @@ it('scaffolds a renamed scope from the name option', function () {
             ->toContain("'singular' => 'company'")
             ->toContain("'plural' => 'companies'")
             ->toContain("'require_existing_user' => false");
+
+        expect(File::get($bootstrapPath))
+            ->toContain("'company' => \\App\\Http\\Middleware\\EnsureCompanyMembership::class")
+            ->toContain("require __DIR__.'/../routes/company-invitations.php';");
     } finally {
         File::delete($configPath);
+        if ($originalBootstrap === null) {
+            File::delete($bootstrapPath);
+        } else {
+            File::put($bootstrapPath, $originalBootstrap);
+        }
         cleanScopeScaffold();
     }
 });

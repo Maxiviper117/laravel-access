@@ -247,17 +247,41 @@ PHP;
         $contents = $files->get($path);
         $alias = $names['singular'];
         $class = "\\App\\Http\\Middleware\\Ensure{$names['studly']}Membership::class";
+        $changed = false;
 
-        if (str_contains($contents, "'{$alias}' => {$class}")) {
-            return;
+        if (! str_contains($contents, "'{$alias}' => {$class}")) {
+            $patched = preg_replace(
+                '/->withMiddleware\\(function \\(Middleware \\$middleware\\): void \\{\\R/',
+                "->withMiddleware(function (Middleware \$middleware): void {\n        \$middleware->alias([\n            '{$alias}' => {$class},\n        ]);\n",
+                $contents,
+                1
+            );
+
+            if ($patched !== null && $patched !== $contents) {
+                $contents = $patched;
+                $changed = true;
+            }
         }
 
-        $contents = preg_replace(
-            '/->withMiddleware\\(function \\(Middleware \\$middleware\\): void \\{\\R/',
-            "->withMiddleware(function (Middleware \$middleware): void {\n        \$middleware->alias([\n            '{$alias}' => {$class},\n        ]);\n",
-            $contents,
-            1
-        ) ?? $contents;
+        $routeFile = "routes/{$names['singular']}-invitations.php";
+
+        if (! str_contains($contents, $routeFile)) {
+            $patched = preg_replace(
+                "/(->withRouting\\([\\s\\S]*?health: ['\"]\\/up['\"],\\R)(\\s*\\))/",
+                "$1        then: function (): void {\n            require __DIR__.'/../{$routeFile}';\n        },\n$2",
+                $contents,
+                1
+            );
+
+            if ($patched !== null && $patched !== $contents) {
+                $contents = $patched;
+                $changed = true;
+            }
+        }
+
+        if (! $changed) {
+            return;
+        }
 
         $files->put($path, $contents);
         $published[] = 'Updated bootstrap/app.php';
