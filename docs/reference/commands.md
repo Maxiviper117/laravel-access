@@ -13,7 +13,7 @@ php artisan access:install
 php artisan access:install --enum
 ```
 
-With `--enum`, the command creates `app/Enums/Permission.php` if it does not already exist.
+With `--enum`, the command creates `app/Enums/Permission.php` if it does not already exist and updates `config/access.php` from `permission_enum => null` to `\App\Enums\Permission::class`.
 
 ## `access:scope`
 

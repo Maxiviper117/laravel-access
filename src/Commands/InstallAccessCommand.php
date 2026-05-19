@@ -31,10 +31,36 @@ class InstallAccessCommand extends Command
                 $files->copy(__DIR__.'/../../resources/stubs/PermissionEnum.stub', $path);
                 $this->info('Generated app/Enums/Permission.php.');
             }
+
+            $this->patchPermissionEnumConfig($files);
         }
 
         $this->line('Next steps: add Maxiviper117\\Access\\Concerns\\HasAccess to your User model, configure config/access.php, then run php artisan migrate && php artisan access:sync.');
 
         return self::SUCCESS;
+    }
+
+    private function patchPermissionEnumConfig(Filesystem $files): void
+    {
+        $path = config_path('access.php');
+
+        if (! $files->exists($path)) {
+            return;
+        }
+
+        $contents = $files->get($path);
+        $patched = preg_replace(
+            "/    'permission_enum' => null,\\R/",
+            "    'permission_enum' => \\App\\Enums\\Permission::class,\n",
+            $contents,
+            1
+        );
+
+        if ($patched === null || $patched === $contents) {
+            return;
+        }
+
+        $files->put($path, $patched);
+        $this->info('Updated config/access.php permission_enum.');
     }
 }

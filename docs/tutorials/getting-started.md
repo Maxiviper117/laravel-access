@@ -21,7 +21,7 @@ php artisan access:install --enum
 php artisan migrate
 ```
 
-`access:install --enum` publishes config and migrations, then creates a starter enum at `app/Enums/Permission.php` when the file does not already exist.
+`access:install --enum` publishes config and migrations, creates a starter enum at `app/Enums/Permission.php` when the file does not already exist, and points `permission_enum` in `config/access.php` to `\App\Enums\Permission::class` when it is still `null`.
 
 Add the trait to your user model:
 

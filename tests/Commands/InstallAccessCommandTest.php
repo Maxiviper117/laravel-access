@@ -18,7 +18,8 @@ it('publishes config and migrations when installing', function () {
 
         expect($configPath)->toBeFile()
             ->and(File::glob(database_path('migrations/*_create_access_table.php')))->toHaveCount(1)
-            ->and($enumPath)->toBeFile();
+            ->and($enumPath)->toBeFile()
+            ->and(File::get($configPath))->toContain("'permission_enum' => \\App\\Enums\\Permission::class");
     } finally {
         File::delete($configPath);
         File::delete($enumPath);
