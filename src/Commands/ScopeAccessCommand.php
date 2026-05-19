@@ -532,11 +532,21 @@ class {$n['studly']} extends Model implements AccessScope
 
     protected \$fillable = ['name', 'slug'];
 
+    /**
+     * Get the route key name used for route model binding.
+     *
+     * @return string The column name used for binding (slug).
+     */
     public function getRouteKeyName(): string
     {
         return 'slug';
     }
 
+    /**
+     * Get all users that belong to this {$n['singular']}.
+     *
+     * @return BelongsToMany<User, \$this, pivot: Membership>
+     */
     public function users(): BelongsToMany
     {
         return \$this->belongsToMany(User::class, '{$n['membersTable']}')
@@ -545,6 +555,11 @@ class {$n['studly']} extends Model implements AccessScope
             ->withTimestamps();
     }
 
+    /**
+     * Get all pending invitations for this {$n['singular']}.
+     *
+     * @return HasMany<{$n['studly']}Invitation>
+     */
     public function invitations(): HasMany
     {
         return \$this->hasMany({$n['studly']}Invitation::class);
@@ -602,6 +617,9 @@ class {$n['studly']}Invitation extends Model
         'accepted_at' => 'datetime',
     ];
 
+    /**
+     * Boot the model to auto-generate invitation code and expiry date on creation.
+     */
     protected static function booted(): void
     {
         static::creating(function (self \$invitation): void {
@@ -610,16 +628,31 @@ class {$n['studly']}Invitation extends Model
         });
     }
 
+    /**
+     * Get the {$n['singular']} this invitation belongs to.
+     *
+     * @return BelongsTo<{$n['studly']}, \$this>
+     */
     public function {$n['camel']}(): BelongsTo
     {
         return \$this->belongsTo({$n['studly']}::class);
     }
 
+    /**
+     * Determine if the invitation has expired.
+     *
+     * @return bool True if the expiry date is in the past.
+     */
     public function isExpired(): bool
     {
         return \$this->expires_at !== null && \$this->expires_at->isPast();
     }
 
+    /**
+     * Determine if the invitation has already been accepted.
+     *
+     * @return bool True if the accepted_at timestamp is set.
+     */
     public function isAccepted(): bool
     {
         return \$this->accepted_at !== null;
@@ -644,6 +677,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 trait Has{$n['studlyPlural']}
 {
+    /**
+     * Get all {$n['plural']} the user belongs to.
+     *
+     * @return BelongsToMany<{$n['studly']}, \$this, pivot: Membership>
+     */
     public function {$n['plural']}(): BelongsToMany
     {
         return \$this->belongsToMany({$n['studly']}::class, '{$n['membersTable']}')
@@ -652,16 +690,33 @@ trait Has{$n['studlyPlural']}
             ->withTimestamps();
     }
 
+    /**
+     * Get the user's currently active {$n['singular']}.
+     *
+     * @return BelongsTo<{$n['studly']}, \$this>
+     */
     public function {$n['camel']}(): BelongsTo
     {
         return \$this->belongsTo({$n['studly']}::class, '{$n['currentColumn']}');
     }
 
+    /**
+     * Determine if the user belongs to the given {$n['singular']}.
+     *
+     * @param  {$n['studly']}  \$scope  The {$n['singular']} to check membership against.
+     * @return bool True if the user is a member of the {$n['singular']}.
+     */
     public function belongsTo{$n['studly']}({$n['studly']} \$scope): bool
     {
         return \$this->{$n['plural']}()->whereKey(\$scope->getKey())->exists();
     }
 
+    /**
+     * Switch the user's current {$n['singular']} context to the given {$n['singular']}.
+     *
+     * @param  {$n['studly']}  \$scope  The {$n['singular']} to switch to.
+     * @return bool True if the switch was successful, false if the user is not a member.
+     */
     public function switch{$n['studly']}({$n['studly']} \$scope): bool
     {
         if (! \$this->belongsTo{$n['studly']}(\$scope)) {
@@ -671,11 +726,23 @@ trait Has{$n['studlyPlural']}
         return \$this->forceFill(['{$n['currentColumn']}' => \$scope->getKey()])->save();
     }
 
+    /**
+     * Determine if the given {$n['singular']} is the user's currently active {$n['singular']}.
+     *
+     * @param  {$n['studly']}  \$scope  The {$n['singular']} to check.
+     * @return bool True if the {$n['singular']} is currently active.
+     */
     public function isCurrent{$n['studly']}({$n['studly']} \$scope): bool
     {
         return (int) \$this->{$n['currentColumn']} === (int) \$scope->getKey();
     }
 
+    /**
+     * Get the user's role within the given {$n['singular']}.
+     *
+     * @param  {$n['studly']}  \$scope  The {$n['singular']} to get the role for.
+     * @return {$n['studly']}Role|null The user's role, or null if not a member.
+     */
     public function {$n['camel']}Role({$n['studly']} \$scope): ?{$n['studly']}Role
     {
         \$membership = \$this->{$n['plural']}()->whereKey(\$scope->getKey())->first()?->pivot;
@@ -701,6 +768,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class Ensure{$n['studly']}Membership
 {
+    /**
+     * Handle an incoming request by verifying the user is a member of the route's {$n['singular']}.
+     *
+     * @param  Request  \$request  The incoming HTTP request.
+     * @param  Closure  \$next  The next middleware handler.
+     * @param  string|null  \$minimumRole  Optional minimum role level required (e.g., 'Admin').
+     * @return Response The response, or a 403 abort if membership check fails.
+     */
     public function handle(Request \$request, Closure \$next, ?string \$minimumRole = null): Response
     {
         \$user = \$request->user();
@@ -737,6 +812,11 @@ enum {$n['studly']}Role: string
     case Admin = 'Admin';
     case Member = 'Member';
 
+    /**
+     * Get the numeric hierarchy level of the role for comparison.
+     *
+     * @return int Higher values indicate greater permissions (Owner=3, Admin=2, Member=1).
+     */
     public function level(): int
     {
         return match (\$this) {
@@ -759,9 +839,16 @@ namespace App\Enums;
 
 enum {$n['studly']}Permission: string
 {
+    /** View the list of {$n['singular']} members. */
     case MembersView = '{$n['singular']}.members.view';
+
+    /** Invite new members to the {$n['singular']}. */
     case MembersInvite = '{$n['singular']}.members.invite';
+
+    /** Manage existing {$n['singular']} members (edit roles, remove, etc.). */
     case MembersManage = '{$n['singular']}.members.manage';
+
+    /** Manage {$n['singular']} settings (name, slug, etc.). */
     case SettingsManage = '{$n['singular']}.settings.manage';
 }
 
@@ -797,6 +884,12 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class {$n['studly']}InvitationController extends Controller
 {
+    /**
+     * Show the invitation acceptance page or redirect to registration if needed.
+     *
+     * @param  {$n['studly']}Invitation  \$invitation  The invitation being accessed.
+     * @return {$responseType}
+     */
     public function show({$n['studly']}Invitation \$invitation): {$responseType}
     {
         if (\$response = \$this->invalidInvitationResponse(\$invitation)) {
@@ -812,6 +905,12 @@ class {$n['studly']}InvitationController extends Controller
         return \$this->renderInvitationError(\$user ? null : 'This invitation can only be accepted by an existing user.', \$invitation);
     }
 
+    /**
+     * Show the registration form for an invited user who does not yet have an account.
+     *
+     * @param  {$n['studly']}Invitation  \$invitation  The invitation being accessed.
+     * @return {$responseType}
+     */
     public function registerForm({$n['studly']}Invitation \$invitation): {$responseType}
     {
         if (\$response = \$this->invalidInvitationResponse(\$invitation)) {
@@ -821,6 +920,13 @@ class {$n['studly']}InvitationController extends Controller
         return \$this->renderRegisterForm(\$invitation);
     }
 
+    /**
+     * Render the invitation error page with an optional message.
+     *
+     * @param  string|null  \$message  The error message to display.
+     * @param  {$n['studly']}Invitation  \$invitation  The invitation associated with the error.
+     * @return {$renderType}
+     */
     private function renderInvitationError(?string \$message, {$n['studly']}Invitation \$invitation): {$renderType}
     {
 PHP
@@ -828,6 +934,12 @@ PHP
             <<<PHP
     }
 
+    /**
+     * Render the invited user registration form.
+     *
+     * @param  {$n['studly']}Invitation  \$invitation  The invitation to register for.
+     * @return {$renderType}
+     */
     private function renderRegisterForm({$n['studly']}Invitation \$invitation): {$renderType}
     {
 PHP
@@ -835,6 +947,12 @@ PHP
             <<<PHP
     }
 
+    /**
+     * Extract shared invitation data to pass to the frontend views.
+     *
+     * @param  {$n['studly']}Invitation  \$invitation  The invitation to extract data from.
+     * @return array<string, string> The invitation code and email.
+     */
     private function invitationProps({$n['studly']}Invitation \$invitation): array
     {
         return [
@@ -845,17 +963,26 @@ PHP
 
 PHP
             .<<<'PHP'
+    /**
+     * Accept a valid invitation for an existing authenticated user.
+     *
+     * @param  Request  $request  The incoming HTTP request.
+     * @param  TeamInvitation  $invitation  The invitation being accepted.
+     * @return RedirectResponse
+     */
     public function accept(Request $request, 
 PHP
             ."{$n['studly']}Invitation \$invitation): RedirectResponse\n".
-            <<<'PHP'
+             <<<'PHP'
     {
+        // @phpstan-ignore encapsedStringPart.nonString
         if ($response = $this->invalidInvitationResponse($invitation)) {
             return $response;
         }
 
         abort_if(! $request->user() || $request->user()->email !== $invitation->email, 403);
 
+        // @phpstan-ignore encapsedStringPart.nonString
         $this->acceptInvitation($invitation, $request->user());
 
         return redirect()->route(config('access.invitations.redirect_after_accept', 'dashboard'));
@@ -863,11 +990,19 @@ PHP
 
 PHP
             .<<<'PHP'
+    /**
+     * Register a new user and accept the invitation in one step.
+     *
+     * @param  Request  $request  The incoming HTTP request with registration data.
+     * @param  TeamInvitation  $invitation  The invitation being accepted.
+     * @return RedirectResponse
+     */
     public function register(Request $request, 
 PHP
             ."{$n['studly']}Invitation \$invitation): RedirectResponse\n".
             <<<'PHP'
     {
+        // @phpstan-ignore encapsedStringPart.nonString
         if ($response = $this->invalidInvitationResponse($invitation)) {
             return $response;
         }
@@ -883,6 +1018,7 @@ PHP
             'password' => Hash::make($validated['password']),
         ]);
 
+        // @phpstan-ignore encapsedStringPart.nonString
         $this->acceptInvitation($invitation, $user);
         Auth::login($user);
 
@@ -891,6 +1027,12 @@ PHP
 
 PHP
             .<<<'PHP'
+    /**
+     * Attach the user to the scope and mark the invitation as accepted.
+     *
+     * @param  TeamInvitation  $invitation  The invitation to process.
+     * @param  User  $user  The user to attach to the scope.
+     */
     private function acceptInvitation(
 PHP
             ."{$n['studly']}Invitation \$invitation, User \$user): void\n".
@@ -904,6 +1046,12 @@ PHP
         \$invitation->forceFill(['accepted_at' => now()])->save();
     }
 
+    /**
+     * Check if the invitation is invalid (accepted or expired) and return an error response if so.
+     *
+     * @param  {$n['studly']}Invitation  \$invitation  The invitation to validate.
+     * @return SymfonyResponse|null Error response if invalid, null if valid.
+     */
     private function invalidInvitationResponse({$n['studly']}Invitation \$invitation): ?SymfonyResponse
     {
         if (\$invitation->isAccepted() || \$invitation->isExpired()) {
@@ -946,6 +1094,7 @@ PHP;
     {
         if ($n['frontend'] !== 'blade') {
             return <<<'PHP'
+            // @phpstan-ignore encapsedStringPart.nonString
             return $this->renderInvitationError(
                 $invitation->isAccepted()
                     ? 'This invitation has already been accepted.'
