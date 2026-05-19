@@ -13,6 +13,8 @@ class ScopeAccessCommand extends Command
         {--singular= : Override singular form}
         {--plural= : Override plural form}
         {--frontend= : Invitation UI stack to generate: blade, react, vue, or svelte}
+        {--notifications : Include invitation creation methods and email notification scaffold}
+        {--no-permission-enum : Do not set the generated scope permission enum in config/access.php}
         {--force : Overwrite existing published files}
         {--migrate : Run migrations after scaffolding}
         {--no-concern : Skip patching the User model with the HasXxx concern}';
@@ -78,6 +80,14 @@ class ScopeAccessCommand extends Command
         $singular = Str::of($this->option('singular') ?: $base)->trim()->lower()->snake()->toString();
         $plural = Str::of($this->option('plural') ?: Str::plural($singular))->trim()->lower()->snake()->toString();
         $frontend = $this->resolveFrontend();
+        $interactive = ! $this->option('name');
+        $assignPermissionEnum = ! $this->option('no-permission-enum');
+        $notifications = (bool) $this->option('notifications');
+
+        if ($interactive) {
+            $assignPermissionEnum = $this->confirm('Set the generated permission enum in config/access.php?', true);
+            $notifications = $this->confirm('Generate invitation email notification helpers?', true);
+        }
 
         return [
             'singular' => $singular,
@@ -94,6 +104,8 @@ class ScopeAccessCommand extends Command
             'inertiaDirectory' => 'auth',
             'invitationErrorPage' => Str::studly($singular).'InvitationError',
             'invitedRegisterPage' => Str::studly($singular).'InvitedRegister',
+            'assignPermissionEnum' => $assignPermissionEnum,
+            'notifications' => $notifications,
         ];
     }
 
@@ -167,6 +179,10 @@ class ScopeAccessCommand extends Command
             base_path("routes/{$names['singular']}-invitations.php") => $this->routes($names),
         ];
 
+        if ($names['notifications']) {
+            $files[app_path("Notifications/{$studly}InvitationNotification.php")] = $this->invitationNotification($names);
+        }
+
         return $files + $this->invitationUiFiles($names);
     }
 
@@ -234,13 +250,15 @@ class ScopeAccessCommand extends Command
 
         $contents = $files->get($path);
         $model = "\\App\\Models\\{$names['studly']}::class";
-        $permissionEnum = "\\App\\Enums\\{$names['studly']}Permission::class";
-        $contents = preg_replace(
-            "/    'permission_enum' => null,\\R/",
-            "    'permission_enum' => {$permissionEnum},\n",
-            $contents,
-            1
-        ) ?? $contents;
+        if ($names['assignPermissionEnum']) {
+            $permissionEnum = "\\App\\Enums\\{$names['studly']}Permission::class";
+            $contents = preg_replace(
+                "/    'permission_enum' => null,\\R/",
+                "    'permission_enum' => {$permissionEnum},\n",
+                $contents,
+                1
+            ) ?? $contents;
+        }
 
         $contents = preg_replace(
             "/    'default_scope_model' => .*?,\\R/",
@@ -860,16 +878,24 @@ PHP;
         $inertiaImports = $n['frontend'] !== 'blade'
             ? "use Inertia\\Inertia;\nuse Inertia\\Response as InertiaResponse;\n"
             : '';
+        $notificationImport = $n['notifications']
+            ? "use App\\Notifications\\{$n['studly']}InvitationNotification;\n"
+            : '';
+        $notificationFacadeImport = $n['notifications']
+            ? "use Illuminate\\Support\\Facades\\Notification;\n"
+            : '';
         $responseType = $n['frontend'] !== 'blade'
             ? 'View|InertiaResponse|RedirectResponse|SymfonyResponse'
             : 'View|RedirectResponse|SymfonyResponse';
         $renderType = $n['frontend'] !== 'blade' ? 'InertiaResponse' : 'View';
+        $invitationMethods = $n['notifications'] ? $this->invitationNotificationControllerMethods($n) : '';
 
         return <<<PHP
 <?php
 
 namespace App\Http\Controllers\Auth;
 
+{$notificationImport}use App\Models\\{$n['studly']};
 use App\Models\\{$n['studly']}Invitation;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -877,7 +903,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+{$notificationFacadeImport}use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 {$inertiaImports}
@@ -958,9 +984,11 @@ PHP
         return [
             'code' => \$invitation->code,
             'email' => \$invitation->email,
+            '{$n['camel']}Name' => \$invitation->{$n['camel']}->name,
         ];
     }
 
+{$invitationMethods}
 PHP
             .<<<'PHP'
     /**
@@ -1135,18 +1163,107 @@ PHP;
 PHP;
     }
 
+    private function invitationNotificationControllerMethods(array $n): string
+    {
+        return <<<PHP
+    /**
+     * Create an invitation and send it to the invited email address.
+     *
+     * @param  Request  \$request  The incoming invite request.
+     * @param  {$n['studly']}  \${$n['camel']}  The {$n['singular']} receiving a new member.
+     * @return RedirectResponse
+     */
+    public function store(Request \$request, {$n['studly']} \${$n['camel']}): RedirectResponse
+    {
+        \$validated = \$request->validate([
+            'email' => ['required', 'email'],
+            'role' => ['required', 'string'],
+        ]);
+
+        \$invitation = \${$n['camel']}->invitations()->create([
+            'email' => \$validated['email'],
+            'role' => \$validated['role'],
+        ]);
+
+        \$this->sendInvitation(\$invitation);
+
+        return back()->with('status', '{$n['studly']} invitation sent.');
+    }
+
+    /**
+     * Send the generic invitation notification.
+     *
+     * @param  {$n['studly']}Invitation  \$invitation  The invitation to send.
+     */
+    private function sendInvitation({$n['studly']}Invitation \$invitation): void
+    {
+        Notification::route('mail', \$invitation->email)
+            ->notify(new {$n['studly']}InvitationNotification(\$invitation));
+    }
+
+PHP;
+    }
+
     private function routes(array $n): string
     {
+        $storeRoute = $n['notifications']
+            ? "Route::post('{{$n['singular']}:slug}/invitations', [{$n['studly']}InvitationController::class, 'store'])->middleware(['auth', '{$n['singular']}:Admin'])->name('{$n['singular']}.invitations.store');\n"
+            : '';
+
         return <<<PHP
 <?php
 
 use App\Http\Controllers\Auth\\{$n['studly']}InvitationController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('invitations/{invitation:code}', [{$n['studly']}InvitationController::class, 'show'])->name('{$n['singular']}.invitations.show');
+{$storeRoute}Route::get('invitations/{invitation:code}', [{$n['studly']}InvitationController::class, 'show'])->name('{$n['singular']}.invitations.show');
 Route::post('invitations/{invitation:code}/accept', [{$n['studly']}InvitationController::class, 'accept'])->middleware('auth')->name('{$n['singular']}.invitations.accept');
 Route::get('invitations/{invitation:code}/register', [{$n['studly']}InvitationController::class, 'registerForm'])->name('{$n['singular']}.invitations.register');
 Route::post('invitations/{invitation:code}/register', [{$n['studly']}InvitationController::class, 'register'])->name('{$n['singular']}.invitations.register.store');
+
+PHP;
+    }
+
+    private function invitationNotification(array $n): string
+    {
+        return <<<PHP
+<?php
+
+namespace App\Notifications;
+
+use App\Models\\{$n['studly']}Invitation;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class {$n['studly']}InvitationNotification extends Notification
+{
+    use Queueable;
+
+    public function __construct(private readonly {$n['studly']}Invitation \$invitation)
+    {
+        //
+    }
+
+    /**
+     * Get the notification channels.
+     *
+     * @return array<int, string>
+     */
+    public function via(object \$notifiable): array
+    {
+        return ['mail'];
+    }
+
+    public function toMail(object \$notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('You have been invited to '.\$this->invitation->{$n['camel']}->name)
+            ->line('You have been invited to join '.\$this->invitation->{$n['camel']}->name.'.')
+            ->action('Accept invitation', route('{$n['singular']}.invitations.show', \$this->invitation))
+            ->line('This invitation expires on '.\$this->invitation->expires_at?->toFormattedDateString().'.');
+    }
+}
 
 PHP;
     }
@@ -1170,6 +1287,8 @@ BLADE;
     <form method="POST" action="{{ route('{$n['singular']}.invitations.register.store', \$invitation) }}">
         @csrf
 
+        <p>Join {{ \$invitation->{$n['camel']}->name }}.</p>
+
         <input type="email" name="email" value="{{ \$invitation->email }}" disabled>
         <input type="text" name="name" value="{{ old('name') }}" required autofocus>
         <input type="password" name="password" required autocomplete="new-password">
@@ -1188,6 +1307,7 @@ BLADE;
 type Invitation = {
     code: string
     email: string
+    {$n['camel']}Name: string
 }
 
 type Props = {
@@ -1200,6 +1320,7 @@ export default function {$n['studly']}InvitationError({ message, invitation }: P
         <main>
             <h1>{$n['studly']} invitation</h1>
             <p>{message}</p>
+            <p>{invitation.{$n['camel']}Name}</p>
             <p>{invitation.email}</p>
         </main>
     )
@@ -1216,6 +1337,7 @@ import { Form } from '@inertiajs/react'
 type Invitation = {
     code: string
     email: string
+    {$n['camel']}Name: string
 }
 
 type Props = {
@@ -1226,6 +1348,7 @@ export default function {$n['studly']}InvitedRegister({ invitation }: Props) {
     return (
         <main>
             <h1>Create your account</h1>
+            <p>Join {invitation.{$n['camel']}Name}.</p>
 
             <Form action={`/invitations/\${invitation.code}/register`} method="post">
                 {({ errors, processing }) => (
@@ -1266,6 +1389,7 @@ defineProps<{
     invitation: {
         code: string
         email: string
+        {$n['camel']}Name: string
     }
 }>()
 </script>
@@ -1274,6 +1398,7 @@ defineProps<{
     <main>
         <h1>{$n['studly']} invitation</h1>
         <p>{{ message }}</p>
+        <p>{{ invitation.{$n['camel']}Name }}</p>
         <p>{{ invitation.email }}</p>
     </main>
 </template>
@@ -1283,7 +1408,7 @@ VUE;
 
     private function vueRegisterPage(array $n): string
     {
-        return <<<'VUE'
+        return <<<VUE
 <script setup lang="ts">
 import { Form } from '@inertiajs/vue3'
 
@@ -1291,6 +1416,7 @@ defineProps<{
     invitation: {
         code: string
         email: string
+        {$n['camel']}Name: string
     }
 }>()
 </script>
@@ -1298,8 +1424,9 @@ defineProps<{
 <template>
     <main>
         <h1>Create your account</h1>
+        <p>Join {{ invitation.{$n['camel']}Name }}.</p>
 
-        <Form :action="`/invitations/${invitation.code}/register`" method="post" v-slot="{ errors, processing }">
+        <Form :action="`/invitations/\${invitation.code}/register`" method="post" v-slot="{ errors, processing }">
             <label for="email">Email</label>
             <input id="email" type="email" :value="invitation.email" disabled>
 
@@ -1333,6 +1460,7 @@ let { message, invitation }: {
     invitation: {
         code: string
         email: string
+        {$n['camel']}Name: string
     }
 } = \$props()
 </script>
@@ -1340,6 +1468,7 @@ let { message, invitation }: {
 <main>
     <h1>{$n['studly']} invitation</h1>
     <p>{message}</p>
+    <p>{invitation.{$n['camel']}Name}</p>
     <p>{invitation.email}</p>
 </main>
 
@@ -1348,7 +1477,7 @@ SVELTE;
 
     private function svelteRegisterPage(array $n): string
     {
-        return <<<'SVELTE'
+        return <<<SVELTE
 <script lang="ts">
 import { Form } from '@inertiajs/svelte'
 
@@ -1356,14 +1485,16 @@ let { invitation }: {
     invitation: {
         code: string
         email: string
+        {$n['camel']}Name: string
     }
-} = $props()
+} = \$props()
 </script>
 
 <main>
     <h1>Create your account</h1>
+    <p>Join {invitation.{$n['camel']}Name}.</p>
 
-    <Form action={`/invitations/${invitation.code}/register`} method="post">
+    <Form action={`/invitations/\${invitation.code}/register`} method="post">
         {#snippet children({ errors, processing })}
             <label for="email">Email</label>
             <input id="email" type="email" value={invitation.email} disabled>

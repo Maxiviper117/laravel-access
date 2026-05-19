@@ -43,9 +43,17 @@ php artisan access:scope --name=company --frontend=vue
 php artisan access:scope --name=company --frontend=svelte
 ```
 
+To scaffold a starter mail notification and invitation creation endpoint as well:
+
+```bash
+php artisan access:scope --name=company --notifications
+```
+
 `access:install --enum` publishes the package config and migrations, generates `app/Enums/Permission.php`, and points `permission_enum` to it when the config value is still `null`.
 
-`access:scope --name=company` generates the company membership layer:
+`access:scope --name=company` asks whether to point `permission_enum` to the generated `CompanyPermission` enum when the config value is still `null`. If you want to keep using the app-wide `Permission` enum from `access:install --enum`, answer no in interactive mode or pass `--no-permission-enum`.
+
+The command generates the company membership layer:
 
 ```text
 database/migrations/*_create_companies_table.php
@@ -64,6 +72,8 @@ routes/company-invitations.php
 ```
 
 It also generates starter invitation error and invited-registration UI. By default those are Blade views; with `--frontend=react`, `--frontend=vue`, or `--frontend=svelte`, they are Inertia pages under `resources/js/Pages/auth`.
+
+The invited-registration UI receives the company name (`$invitation->company->name` in Blade or `invitation.companyName` in Inertia) so the page can tell invitees which company they are joining.
 
 It also patches `config/access.php`, `app/Models/User.php`, `app/Providers/AppServiceProvider.php`, and `bootstrap/app.php`.
 
@@ -410,8 +420,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::patch('tasks/{task}', [TaskController::class, 'update']);
     Route::delete('tasks/{task}', [TaskController::class, 'destroy']);
-});
+    });
 ```
+
+If you generated notification helpers, the command also adds a protected invitation creation route in `routes/company-invitations.php`:
+
+```php
+Route::post('{company:slug}/invitations', [CompanyInvitationController::class, 'store'])
+    ->middleware(['auth', 'company:Admin'])
+    ->name('company.invitations.store');
+```
+
+Customize `CompanyInvitationNotification`, the `store` validation rules, and middleware before exposing this endpoint to users.
 
 The generated middleware resolves `{current_company}`, checks membership, and updates `users.current_company_id`. The generated `AppServiceProvider` URL defaults let `route('dashboard')` include the current company slug automatically.
 

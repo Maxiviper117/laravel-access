@@ -16,6 +16,7 @@ function cleanScopeScaffold(): void
         app_path('Enums/CompanyRole.php'),
         app_path('Enums/CompanyPermission.php'),
         app_path('Http/Controllers/Auth/CompanyInvitationController.php'),
+        app_path('Notifications/CompanyInvitationNotification.php'),
         resource_path('views/auth/company-invitation-error.blade.php'),
         resource_path('views/auth/company-invited-register.blade.php'),
         resource_path('js/Pages/auth/CompanyInvitationError.tsx'),
@@ -112,7 +113,8 @@ PHP);
 
         expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
             ->not->toContain('use Inertia\\Inertia;')
-            ->toContain("return view('auth.company-invited-register'");
+            ->toContain("return view('auth.company-invited-register'")
+            ->toContain("'companyName' => \$invitation->company->name");
 
         expect(File::get(config_path('access.php')))
             ->toContain("'permission_enum' => \\App\\Enums\\CompanyPermission::class")
@@ -133,6 +135,51 @@ PHP);
         } else {
             File::put($bootstrapPath, $originalBootstrap);
         }
+        cleanScopeScaffold();
+    }
+});
+
+it('can skip assigning the generated permission enum', function () {
+    $configPath = config_path('access.php');
+
+    File::delete($configPath);
+    cleanScopeScaffold();
+
+    try {
+        $this->artisan('access:scope --name=company --no-permission-enum --no-concern')
+            ->assertSuccessful();
+
+        expect(File::get($configPath))
+            ->toContain("'permission_enum' => null")
+            ->toContain("'default_scope_model' => \\App\\Models\\Company::class");
+    } finally {
+        File::delete($configPath);
+        cleanScopeScaffold();
+    }
+});
+
+it('can scaffold invitation notification helpers', function () {
+    cleanScopeScaffold();
+
+    try {
+        $this->artisan('access:scope --name=company --notifications --no-concern')
+            ->assertSuccessful();
+
+        expect(app_path('Notifications/CompanyInvitationNotification.php'))->toBeFile();
+
+        expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
+            ->toContain('use App\\Notifications\\CompanyInvitationNotification;')
+            ->toContain('public function store(Request $request, Company $company): RedirectResponse')
+            ->toContain("Notification::route('mail', \$invitation->email)")
+            ->toContain('new CompanyInvitationNotification($invitation)');
+
+        expect(File::get(base_path('routes/company-invitations.php')))
+            ->toContain("Route::post('{company:slug}/invitations'")
+            ->toContain("->middleware(['auth', 'company:Admin'])");
+
+        expect(File::get(app_path('Notifications/CompanyInvitationNotification.php')))
+            ->toContain("route('company.invitations.show', \$this->invitation)");
+    } finally {
         cleanScopeScaffold();
     }
 });

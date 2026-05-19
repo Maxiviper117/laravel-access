@@ -23,6 +23,8 @@ Scaffolds app-owned team/group support. The group name can be renamed to match y
 php artisan access:scope
 php artisan access:scope --name=company
 php artisan access:scope --name=company --frontend=react
+php artisan access:scope --name=company --notifications
+php artisan access:scope --name=company --no-permission-enum
 php artisan access:scope --name=alumnus --plural=alumni
 php artisan access:scope --name=workspace --force --migrate
 ```
@@ -40,6 +42,12 @@ Options:
 
 `--frontend=`
 : Invitation UI stack to generate. Supported values: `blade`, `react`, `vue`, `svelte`. In interactive mode, the command asks for this value. Non-interactive runs default to `blade`.
+
+`--notifications`
+: Generates a generic mail notification plus invitation creation/sending methods on the generated invitation controller. In interactive mode, the command asks whether to generate these helpers.
+
+`--no-permission-enum`
+: Leaves `permission_enum` unchanged instead of setting it to the generated `<Scope>Permission::class` when the config value is `null`. In interactive mode, the command asks before writing this config value.
 
 `--force`
 : Overwrites existing scaffolded files.
