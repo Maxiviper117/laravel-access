@@ -91,7 +91,7 @@ class ScopeAccessCommand extends Command
             'currentColumn' => "current_{$singular}_id",
             'currentRouteKey' => "current_{$singular}",
             'frontend' => $frontend,
-            'inertiaDirectory' => 'Auth',
+            'inertiaDirectory' => 'auth',
             'invitationErrorPage' => Str::studly($singular).'InvitationError',
             'invitedRegisterPage' => Str::studly($singular).'InvitedRegister',
         ];

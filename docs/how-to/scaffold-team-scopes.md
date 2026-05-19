@@ -93,8 +93,8 @@ resources/views/auth/company-invited-register.blade.php
 If you choose an Inertia frontend, the Blade files are replaced with starter pages:
 
 ```text
-resources/js/Pages/Auth/CompanyInvitationError.tsx
-resources/js/Pages/Auth/CompanyInvitedRegister.tsx
+resources/js/Pages/auth/CompanyInvitationError.tsx
+resources/js/Pages/auth/CompanyInvitedRegister.tsx
 ```
 
 For Vue the extension is `.vue`; for Svelte the extension is `.svelte`.
@@ -138,8 +138,8 @@ resources/views/auth/company-invited-register.blade.php
 Inertia output uses:
 
 ```text
-resources/js/Pages/Auth/CompanyInvitationError.{tsx,vue,svelte}
-resources/js/Pages/Auth/CompanyInvitedRegister.{tsx,vue,svelte}
+resources/js/Pages/auth/CompanyInvitationError.{tsx,vue,svelte}
+resources/js/Pages/auth/CompanyInvitedRegister.{tsx,vue,svelte}
 ```
 
 The Inertia pages are generated for Inertia v3 and use the current `<Form>` component from `@inertiajs/react`, `@inertiajs/vue3`, or `@inertiajs/svelte`.

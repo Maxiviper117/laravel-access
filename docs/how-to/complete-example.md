@@ -63,7 +63,7 @@ app/Http/Controllers/Auth/CompanyInvitationController.php
 routes/company-invitations.php
 ```
 
-It also generates starter invitation error and invited-registration UI. By default those are Blade views; with `--frontend=react`, `--frontend=vue`, or `--frontend=svelte`, they are Inertia pages under `resources/js/Pages/Auth`.
+It also generates starter invitation error and invited-registration UI. By default those are Blade views; with `--frontend=react`, `--frontend=vue`, or `--frontend=svelte`, they are Inertia pages under `resources/js/Pages/auth`.
 
 It also patches `config/access.php`, `app/Models/User.php`, `app/Providers/AppServiceProvider.php`, and `bootstrap/app.php`.
 

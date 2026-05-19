@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\File;
 
 function cleanScopeScaffold(): void
 {
+    File::deleteDirectory(resource_path('js/Pages/Auth'));
+    File::deleteDirectory(resource_path('js/Pages/auth'));
+
     foreach ([
         app_path('Models/Company.php'),
         app_path('Models/Membership.php'),
@@ -15,12 +18,12 @@ function cleanScopeScaffold(): void
         app_path('Http/Controllers/Auth/CompanyInvitationController.php'),
         resource_path('views/auth/company-invitation-error.blade.php'),
         resource_path('views/auth/company-invited-register.blade.php'),
-        resource_path('js/Pages/Auth/CompanyInvitationError.tsx'),
-        resource_path('js/Pages/Auth/CompanyInvitedRegister.tsx'),
-        resource_path('js/Pages/Auth/CompanyInvitationError.vue'),
-        resource_path('js/Pages/Auth/CompanyInvitedRegister.vue'),
-        resource_path('js/Pages/Auth/CompanyInvitationError.svelte'),
-        resource_path('js/Pages/Auth/CompanyInvitedRegister.svelte'),
+        resource_path('js/Pages/auth/CompanyInvitationError.tsx'),
+        resource_path('js/Pages/auth/CompanyInvitedRegister.tsx'),
+        resource_path('js/Pages/auth/CompanyInvitationError.vue'),
+        resource_path('js/Pages/auth/CompanyInvitedRegister.vue'),
+        resource_path('js/Pages/auth/CompanyInvitationError.svelte'),
+        resource_path('js/Pages/auth/CompanyInvitedRegister.svelte'),
         base_path('routes/company-invitations.php'),
     ] as $path) {
         File::delete($path);
@@ -141,20 +144,20 @@ it('can scaffold inertia react invitation pages', function () {
         $this->artisan('access:scope --name=company --frontend=react --no-concern')
             ->assertSuccessful();
 
-        expect(resource_path('js/Pages/Auth/CompanyInvitationError.tsx'))->toBeFile()
-            ->and(resource_path('js/Pages/Auth/CompanyInvitedRegister.tsx'))->toBeFile()
+        expect(resource_path('js/Pages/auth/CompanyInvitationError.tsx'))->toBeFile()
+            ->and(resource_path('js/Pages/auth/CompanyInvitedRegister.tsx'))->toBeFile()
             ->and(resource_path('views/auth/company-invitation-error.blade.php'))->not->toBeFile()
             ->and(resource_path('views/auth/company-invited-register.blade.php'))->not->toBeFile();
 
         expect(collect(File::directories(resource_path('js/Pages')))->map(fn (string $path) => basename($path))->all())
-            ->toContain('Auth');
+            ->toContain('auth');
 
         expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
             ->toContain('use Inertia\\Inertia;')
-            ->toContain("Inertia::render('Auth/CompanyInvitationError'")
-            ->toContain("Inertia::render('Auth/CompanyInvitedRegister'");
+            ->toContain("Inertia::render('auth/CompanyInvitationError'")
+            ->toContain("Inertia::render('auth/CompanyInvitedRegister'");
 
-        expect(File::get(resource_path('js/Pages/Auth/CompanyInvitedRegister.tsx')))
+        expect(File::get(resource_path('js/Pages/auth/CompanyInvitedRegister.tsx')))
             ->toContain("import { Form } from '@inertiajs/react'")
             ->toContain('Create account');
     } finally {
@@ -169,15 +172,15 @@ it('keeps inertia generated page path casing aligned with render names', functio
         $this->artisan('access:scope --name=company --frontend=vue --no-concern')
             ->assertSuccessful();
 
-        expect(resource_path('js/Pages/Auth/CompanyInvitationError.vue'))->toBeFile()
-            ->and(resource_path('js/Pages/Auth/CompanyInvitedRegister.vue'))->toBeFile();
+        expect(resource_path('js/Pages/auth/CompanyInvitationError.vue'))->toBeFile()
+            ->and(resource_path('js/Pages/auth/CompanyInvitedRegister.vue'))->toBeFile();
 
         expect(collect(File::directories(resource_path('js/Pages')))->map(fn (string $path) => basename($path))->all())
-            ->toContain('Auth');
+            ->toContain('auth');
 
         expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
-            ->toContain("Inertia::render('Auth/CompanyInvitationError'")
-            ->toContain("Inertia::render('Auth/CompanyInvitedRegister'");
+            ->toContain("Inertia::render('auth/CompanyInvitationError'")
+            ->toContain("Inertia::render('auth/CompanyInvitedRegister'");
     } finally {
         cleanScopeScaffold();
     }
@@ -190,14 +193,14 @@ it('uses inertia v3 svelte props syntax for svelte invitation pages', function (
         $this->artisan('access:scope --name=company --frontend=svelte --no-concern')
             ->assertSuccessful();
 
-        expect(resource_path('js/Pages/Auth/CompanyInvitationError.svelte'))->toBeFile()
-            ->and(resource_path('js/Pages/Auth/CompanyInvitedRegister.svelte'))->toBeFile();
+        expect(resource_path('js/Pages/auth/CompanyInvitationError.svelte'))->toBeFile()
+            ->and(resource_path('js/Pages/auth/CompanyInvitedRegister.svelte'))->toBeFile();
 
-        expect(File::get(resource_path('js/Pages/Auth/CompanyInvitedRegister.svelte')))
+        expect(File::get(resource_path('js/Pages/auth/CompanyInvitedRegister.svelte')))
             ->toContain('} = $props()')
             ->not->toContain('export let invitation');
 
-        expect(File::get(resource_path('js/Pages/Auth/CompanyInvitationError.svelte')))
+        expect(File::get(resource_path('js/Pages/auth/CompanyInvitationError.svelte')))
             ->toContain('} = $props()')
             ->not->toContain('export let message');
     } finally {
