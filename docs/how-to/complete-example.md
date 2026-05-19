@@ -4,42 +4,79 @@ title: Complete Example
 
 # Complete Example: Project Management SaaS
 
-This example walks through a real Laravel app using Laravel Access for scoped authorization — from install to tests.
+This example walks through a Laravel app that uses `access:scope` for company membership and Laravel Access for scoped authorization.
 
 ## Scenario
 
 A project management SaaS where:
 
-- Users belong to companies (membership tracked by your app)
+- Users belong to companies
 - Companies have projects and tasks
-- A user's role is per-company — Owner in one, Member in another
-- Roles control CRUD access at the company level
+- Membership is tracked in generated `company_members`
+- Authorization roles are scoped per company
+- Policies decide whether a user can view, create, update, or delete project data
 
 ## Models
 
-| Model | Purpose | Scope |
+| Model | Purpose | Source |
 |---|---|---|
-| `User` | Authenticatable, uses `HasAccess` | Actor |
-| `Company` | Tenant / organization | Scope model |
-| `Project` | Belongs to company | Object |
-| `Task` | Belongs to project | Object |
+| `User` | Authenticated actor using `HasAccess` and generated `HasCompanies` | App + scaffold |
+| `Company` | Scope model, route-bound by slug | `access:scope` |
+| `Membership` | Company membership pivot with enum-cast role | `access:scope` |
+| `CompanyInvitation` | Invitation model with code, expiry, acceptance | `access:scope` |
+| `Project` | Belongs to company | You create |
+| `Task` | Belongs to project | You create |
 
-## 1. Install
+## 1. Install and Scaffold Company Scopes
 
 ```bash
 composer require maxiviper117/laravel-access
 php artisan access:install --enum
-php artisan migrate
+php artisan access:scope --name=company
 ```
 
-Add the trait to `User`:
+For an Inertia app, choose the matching generated invitation pages:
+
+```bash
+php artisan access:scope --name=company --frontend=react
+php artisan access:scope --name=company --frontend=vue
+php artisan access:scope --name=company --frontend=svelte
+```
+
+`access:install --enum` publishes the package config and migrations, generates `app/Enums/Permission.php`, and points `permission_enum` to it when the config value is still `null`.
+
+`access:scope --name=company` generates the company membership layer:
+
+```text
+database/migrations/*_create_companies_table.php
+database/migrations/*_create_company_members_table.php
+database/migrations/*_create_company_invitations_table.php
+database/migrations/*_add_current_company_id_to_users_table.php
+app/Models/Company.php
+app/Models/Membership.php
+app/Models/CompanyInvitation.php
+app/Concerns/HasCompanies.php
+app/Http/Middleware/EnsureCompanyMembership.php
+app/Enums/CompanyRole.php
+app/Enums/CompanyPermission.php
+app/Http/Controllers/Auth/CompanyInvitationController.php
+routes/company-invitations.php
+```
+
+It also generates starter invitation error and invited-registration UI. By default those are Blade views; with `--frontend=react`, `--frontend=vue`, or `--frontend=svelte`, they are Inertia pages under `resources/js/Pages/Auth`.
+
+It also patches `config/access.php`, `app/Models/User.php`, `app/Providers/AppServiceProvider.php`, and `bootstrap/app.php`.
+
+Add `HasAccess` to `User`. The generated `HasCompanies` trait is added by the scaffold unless you passed `--no-concern`.
 
 ```php
+use App\Concerns\HasCompanies;
 use Maxiviper117\Access\Concerns\HasAccess;
 
 class User extends Authenticatable
 {
     use HasAccess;
+    use HasCompanies;
 }
 ```
 
@@ -70,150 +107,75 @@ enum Permission: string
 
 ## 3. Configure Roles
 
-Edit `config/access.php`. Lines with a red `-` are removed from the stub. Lines with a green `+` are what you write:
+`access:scope` already points `default_scope_model` to `Company::class`. Keep `permission_enum` pointed at your main app permission enum, then configure scoped roles. Use generated `CompanyRole` enum values so membership roles and access roles stay aligned.
 
 ```php
+use App\Enums\CompanyRole;
 use App\Enums\Permission;
 use App\Models\Company;
 
 return [
     'user_model' => 'App\\Models\\User',
 
-    'permission_enum' => null, // [!code --]
-    'permission_enum' => Permission::class, // [!code ++]
+    'permission_enum' => Permission::class,
 
-    'default_scope_model' => null, // [!code --]
-    'default_scope_model' => Company::class, // [!code ++]
+    'default_scope_model' => Company::class,
 
-    'cache' => [
-        'enabled' => env('APP_ENV') !== 'testing',
-        'key' => 'access.permissions',
-        'ttl' => null,
+    'teams' => [
+        'model' => Company::class,
+        'singular' => 'company',
+        'plural' => 'companies',
     ],
 
-    'global_roles' => [ // [!code --]
-        // 'Platform Admin' => [ // [!code --]
-        //     App\Enums\Permission::SystemManage, // [!code --]
-        // ], // [!code --]
-    ], // [!code --]
-    'global_roles' => [ // [!code ++]
-        'Platform Admin' => [ // [!code ++]
-            Permission::SystemManage, // [!code ++]
-        ], // [!code ++]
-    ], // [!code ++]
+    'roles' => [
+        CompanyRole::Owner->value => [
+            Permission::ProjectsView,
+            Permission::ProjectsCreate,
+            Permission::ProjectsUpdate,
+            Permission::ProjectsDelete,
+            Permission::TasksView,
+            Permission::TasksCreate,
+            Permission::TasksUpdate,
+            Permission::TasksDelete,
+            Permission::MembersInvite,
+            Permission::MembersManage,
+            Permission::BillingView,
+            Permission::CompanyUpdate,
+        ],
+        CompanyRole::Admin->value => [
+            Permission::ProjectsView,
+            Permission::ProjectsCreate,
+            Permission::ProjectsUpdate,
+            Permission::ProjectsDelete,
+            Permission::TasksView,
+            Permission::TasksCreate,
+            Permission::TasksUpdate,
+            Permission::TasksDelete,
+            Permission::MembersInvite,
+            Permission::BillingView,
+        ],
+        CompanyRole::Member->value => [
+            Permission::ProjectsView,
+            Permission::TasksView,
+            Permission::TasksCreate,
+            Permission::TasksUpdate,
+        ],
+    ],
 
-    'roles' => [ // [!code --]
-        // 'Owner' => [ // [!code --]
-        //     App\Enums\Permission::UsersView, // [!code --]
-        // ], // [!code --]
-    ], // [!code --]
-    'roles' => [ // [!code ++]
-        'Owner' => [ // [!code ++]
-            Permission::ProjectsView, // [!code ++]
-            Permission::ProjectsCreate, // [!code ++]
-            Permission::ProjectsUpdate, // [!code ++]
-            Permission::ProjectsDelete, // [!code ++]
-            Permission::TasksView, // [!code ++]
-            Permission::TasksCreate, // [!code ++]
-            Permission::TasksUpdate, // [!code ++]
-            Permission::TasksDelete, // [!code ++]
-            Permission::MembersInvite, // [!code ++]
-            Permission::MembersManage, // [!code ++]
-            Permission::BillingView, // [!code ++]
-            Permission::CompanyUpdate, // [!code ++]
-        ], // [!code ++]
-        'Admin' => [ // [!code ++]
-            Permission::ProjectsView, // [!code ++]
-            Permission::ProjectsCreate, // [!code ++]
-            Permission::ProjectsUpdate, // [!code ++]
-            Permission::ProjectsDelete, // [!code ++]
-            Permission::TasksView, // [!code ++]
-            Permission::TasksCreate, // [!code ++]
-            Permission::TasksUpdate, // [!code ++]
-            Permission::TasksDelete, // [!code ++]
-            Permission::MembersInvite, // [!code ++]
-            Permission::BillingView, // [!code ++]
-        ], // [!code ++]
-        'Manager' => [ // [!code ++]
-            Permission::ProjectsView, // [!code ++]
-            Permission::ProjectsCreate, // [!code ++]
-            Permission::ProjectsUpdate, // [!code ++]
-            Permission::TasksView, // [!code ++]
-            Permission::TasksCreate, // [!code ++]
-            Permission::TasksUpdate, // [!code ++]
-        ], // [!code ++]
-        'Member' => [ // [!code ++]
-            Permission::ProjectsView, // [!code ++]
-            Permission::TasksView, // [!code ++]
-            Permission::TasksCreate, // [!code ++]
-            Permission::TasksUpdate, // [!code ++]
-        ], // [!code ++]
-    ], // [!code ++]
-
-    'gate_before' => [
-        'enabled' => false,
-        'global_role' => 'Platform Admin',
+    'global_roles' => [
+        'Platform Admin' => [
+            Permission::SystemManage,
+        ],
     ],
 ];
 ```
 
-## 4. Create Models & Migrations
+## 4. Add Project and Task Tables
 
-Create the following migrations and models. The `users` table already exists from Laravel's default install — you only need to add the `company_user` pivot and the `projects`/`tasks` tables.
-
-### Migrations
+The company and membership tables are already generated. Add only the app-specific project and task tables.
 
 ```php
-// database/migrations/xxxx_xx_xx_000001_create_companies_table.php
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('companies', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('companies');
-    }
-};
-```
-
-```php
-// database/migrations/xxxx_xx_xx_000002_create_company_user_pivot_table.php
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('company_user', function (Blueprint $table) {
-            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->primary(['company_id', 'user_id']);
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('company_user');
-    }
-};
-```
-
-```php
-// database/migrations/xxxx_xx_xx_000003_create_projects_table.php
+// database/migrations/xxxx_xx_xx_000001_create_projects_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -239,7 +201,7 @@ return new class extends Migration
 ```
 
 ```php
-// database/migrations/xxxx_xx_xx_000004_create_tasks_table.php
+// database/migrations/xxxx_xx_xx_000002_create_tasks_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -265,57 +227,30 @@ return new class extends Migration
 };
 ```
 
-### Models
+Run migrations and sync configured access roles:
 
-Add the `companies()` relationship to `User` (alongside the `HasAccess` trait from section 1):
-
-```php
-// app/Models/User.php
-
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-
-// Inside the class:
-public function companies(): BelongsToMany
-{
-    return $this->belongsToMany(Company::class);
-}
+```bash
+php artisan migrate
+php artisan access:sync
 ```
+
+## 5. Add Project and Task Models
+
+Add the domain relationships to the generated `Company` model:
 
 ```php
 // app/Models/Company.php
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Company extends Model
+public function projects(): HasMany
 {
-    /** @use HasFactory<\Database\Factories\CompanyFactory> */
-    use HasFactory;
-
-    protected $fillable = ['name', 'slug'];
-
-    public function getRouteKeyName(): string
-    {
-        return 'slug';
-    }
-
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class);
-    }
-
-    public function projects(): HasMany
-    {
-        return $this->hasMany(Project::class);
-    }
+    return $this->hasMany(Project::class);
 }
 ```
 
+Create `Project`:
+
 ```php
-// app/Models/Project.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -325,7 +260,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProjectFactory> */
     use HasFactory;
 
     protected $fillable = ['company_id', 'name', 'status'];
@@ -342,8 +276,9 @@ class Project extends Model
 }
 ```
 
+Create `Task`:
+
 ```php
-// app/Models/Task.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -352,7 +287,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Task extends Model
 {
-    /** @use HasFactory<\Database\Factories\TaskFactory> */
     use HasFactory;
 
     protected $fillable = ['project_id', 'title', 'assigned_to', 'status'];
@@ -369,101 +303,9 @@ class Task extends Model
 }
 ```
 
-Company membership is tracked by your own `company_user` pivot table — Laravel Access does not manage memberships. No separate model is needed; `belongsToMany` on both `User` and `Company` handles it transparently.
+## 6. Write Policies
 
-### Factories
-
-The seeder uses `Company::factory()`, so create factories that produce sensible defaults:
-
-```php
-// database/factories/CompanyFactory.php
-namespace Database\Factories;
-
-use App\Models\Company;
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
-
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Company>
- */
-class CompanyFactory extends Factory
-{
-    protected $model = Company::class;
-
-    public function definition(): array
-    {
-        return [
-            'name' => fake()->company(),
-            'slug' => Str::slug(fake()->unique()->company()),
-        ];
-    }
-}
-```
-
-```php
-// database/factories/ProjectFactory.php
-namespace Database\Factories;
-
-use App\Models\Company;
-use App\Models\Project;
-use Illuminate\Database\Eloquent\Factories\Factory;
-
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Project>
- */
-class ProjectFactory extends Factory
-{
-    protected $model = Project::class;
-
-    public function definition(): array
-    {
-        return [
-            'company_id' => Company::factory(),
-            'name' => fake()->sentence(3),
-            'status' => 'active',
-        ];
-    }
-}
-```
-
-```php
-// database/factories/TaskFactory.php
-namespace Database\Factories;
-
-use App\Models\Project;
-use App\Models\Task;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Factories\Factory;
-
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Task>
- */
-class TaskFactory extends Factory
-{
-    protected $model = Task::class;
-
-    public function definition(): array
-    {
-        return [
-            'project_id' => Project::factory(),
-            'title' => fake()->sentence(6),
-            'assigned_to' => User::factory(),
-            'status' => 'todo',
-        ];
-    }
-}
-```
-
-Now sync the role and permission definitions into the database (migrations and models must exist first since `Company::class` is referenced in the config):
-
-```bash
-php artisan migrate
-php artisan access:sync
-```
-
-## 5. Write Policies
-
-Policy methods check the permission and any object-specific rules together:
+Policies combine object rules with Laravel Access permission checks.
 
 ```php
 namespace App\Policies;
@@ -477,42 +319,38 @@ class ProjectPolicy
 {
     public function viewAny(User $user, Company $company): bool
     {
-        return $user->in($company)->can(Permission::ProjectsView);
+        return $user->belongsToCompany($company)
+            && $user->in($company)->can(Permission::ProjectsView);
     }
 
     public function view(User $user, Project $project): bool
     {
-        return $user->in($project->company)->can(Permission::ProjectsView);
+        return $user->belongsToCompany($project->company)
+            && $user->in($project->company)->can(Permission::ProjectsView);
     }
 
     public function create(User $user, Company $company): bool
     {
-        return $user->in($company)->can(Permission::ProjectsCreate);
+        return $user->belongsToCompany($company)
+            && $user->in($company)->can(Permission::ProjectsCreate);
     }
 
     public function update(User $user, Project $project): bool
     {
-        return $user->in($project->company)->can(Permission::ProjectsUpdate);
+        return $project->status !== 'archived'
+            && $user->belongsToCompany($project->company)
+            && $user->in($project->company)->can(Permission::ProjectsUpdate);
     }
 
     public function delete(User $user, Project $project): bool
     {
-        return $user->in($project->company)->can(Permission::ProjectsDelete);
+        return $user->belongsToCompany($project->company)
+            && $user->in($project->company)->can(Permission::ProjectsDelete);
     }
 }
 ```
 
-Combine permission checks with object state:
-
-```php
-public function update(User $user, Project $project): bool
-{
-    return $project->status !== 'archived'
-        && $user->in($project->company)->can(Permission::ProjectsUpdate);
-}
-```
-
-TaskPolicy follows the same pattern, resolving the company through `$task->project->company`:
+Task policies follow the same pattern by resolving the company through `$task->project->company`.
 
 ```php
 namespace App\Policies;
@@ -523,119 +361,65 @@ use App\Models\User;
 
 class TaskPolicy
 {
-    public function update(User $user, Task $task): bool
-    {
-        return $user->in($task->project->company)->can(Permission::TasksUpdate);
-    }
-
     public function view(User $user, Task $task): bool
     {
-        return $user->in($task->project->company)->can(Permission::TasksView);
+        $company = $task->project->company;
+
+        return $user->belongsToCompany($company)
+            && $user->in($company)->can(Permission::TasksView);
+    }
+
+    public function update(User $user, Task $task): bool
+    {
+        $company = $task->project->company;
+
+        return $user->belongsToCompany($company)
+            && $user->in($company)->can(Permission::TasksUpdate);
     }
 }
 ```
 
-Register policies (optional — Laravel auto-discovers policies when the model and policy follow naming conventions, e.g. `Project` → `ProjectPolicy`):
+## 7. Set Up Routes
+
+Use the generated company middleware to prove membership and set the current company. Use the `access` middleware for simple permission checks.
 
 ```php
-// App\Providers\AuthServiceProvider
-
-use App\Models\Project;
-use App\Models\Task;
-use App\Policies\ProjectPolicy;
-use App\Policies\TaskPolicy;
-
-protected $policies = [
-    Project::class => ProjectPolicy::class,
-    Task::class => TaskPolicy::class,
-];
-```
-
-## 6. Set Up Routes and Middleware
-
-Use the `access` middleware for route-level checks:
-
-```php
-// routes/web.php
-<?php
-
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
-use App\Http\Middleware\SetActiveCompany;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
-
-Route::inertia('/', 'Welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
-});
-
-Route::middleware('auth')->group(function () {
-
-    // Scoped routes — requires a company parameter
-    Route::prefix('companies/{company}')
-        ->middleware(SetActiveCompany::class)
+    Route::prefix('{current_company}')
+        ->middleware('company')
         ->group(function () {
+            Route::get('dashboard', DashboardController::class)->name('dashboard');
 
             Route::get('projects', [ProjectController::class, 'index'])
-                ->name('companies.projects.index')
-                ->middleware('access:projects.view,company');
+                ->name('projects.index')
+                ->middleware('access:projects.view,current_company');
 
             Route::post('projects', [ProjectController::class, 'store'])
-                ->name('companies.projects.store')
-                ->middleware('access:projects.create,company');
+                ->name('projects.store')
+                ->middleware('access:projects.create,current_company');
 
             Route::get('billing', [BillingController::class, 'show'])
-                ->name('companies.billing.show')
-                ->middleware('access:billing.view,company');
+                ->name('billing.show')
+                ->middleware('access:billing.view,current_company');
         });
 
-    // Nested routes — policy handles the permission check
     Route::patch('tasks/{task}', [TaskController::class, 'update']);
     Route::delete('tasks/{task}', [TaskController::class, 'destroy']);
 });
-
-require __DIR__.'/settings.php';
 ```
 
-The `Company` model uses `getRouteKeyName()` to resolve route parameters by `slug` instead of `id`. The middleware resolves `company` from the route parameter, looks up the model by slug, and checks the permission in that scope. If the user lacks the permission, it returns `403`.
+The generated middleware resolves `{current_company}`, checks membership, and updates `users.current_company_id`. The generated `AppServiceProvider` URL defaults let `route('dashboard')` include the current company slug automatically.
 
-Nested resources like `tasks/{task}` don't need middleware — the policy resolves the company through the relationship.
+Nested routes like `tasks/{task}` can rely on policies because the company is resolved through relationships.
 
-### Active Company Middleware
+## 8. Build Controllers
 
-The Inertia sharing and other places need to know which company the user is currently acting within. Create middleware that captures it from the route:
-
-```php
-// app/Http/Middleware/SetActiveCompany.php
-namespace App\Http\Middleware;
-
-use Closure;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-
-class SetActiveCompany
-{
-    public function handle(Request $request, Closure $next): Response
-    {
-        if ($company = $request->route('company')) {
-            session(['active_company_id' => $company instanceof \App\Models\Company ? $company->id : $company]);
-        }
-
-        return $next($request);
-    }
-}
-```
-
-## 7. Build Controllers
-
-Keep controllers thin. Authorize through policies.
-
-> **Laravel 11+ note:** The base controller no longer includes `AuthorizesRequests` by default, so `$this->authorize()` requires adding `use Illuminate\Foundation\Auth\Access\AuthorizesRequests` to your controller. Prefer `Gate::authorize()` — it works without the trait and anywhere in your codebase.
+Keep controllers thin and authorize through policies.
 
 ```php
 namespace App\Http\Controllers;
@@ -647,47 +431,40 @@ use Illuminate\Support\Facades\Gate;
 
 class ProjectController extends Controller
 {
-    public function index(Company $company)
+    public function index(Company $current_company)
     {
-        Gate::authorize('viewAny', [Project::class, $company]);
-
-        $projects = $company->projects()->paginate();
+        Gate::authorize('viewAny', [Project::class, $current_company]);
 
         return inertia('Projects/Index', [
-            'company' => $company,
-            'projects' => $projects,
+            'company' => $current_company,
+            'projects' => $current_company->projects()->paginate(),
         ]);
     }
 
-    public function store(Request $request, Company $company)
+    public function store(Request $request, Company $current_company)
     {
-        Gate::authorize('create', [Project::class, $company]);
+        Gate::authorize('create', [Project::class, $current_company]);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
+        $project = $current_company->projects()->create(
+            $request->validate(['name' => ['required', 'string', 'max:255']])
+        );
 
-        $project = $company->projects()->create($validated);
-
-        return redirect()->route('projects.show', [$company, $project]);
+        return redirect()->route('projects.show', $project);
     }
 }
 ```
 
-The policy receives `Project::class` and the `$company` parameter, matching the `viewAny` and `create` signatures.
+## 9. Share Permissions With Inertia
 
-## 8. Share Permissions With Inertia
-
-Share only the permissions the current page needs, resolved against the active company:
+Use the current company relation generated by `access:scope`.
 
 ```php
 use App\Enums\Permission;
 use Maxiviper117\Access\Facades\Access;
 
-// In HandleInertiaRequests::share()
-'access' => fn () => $request->user() && session('active_company_id')
+'access' => fn () => $request->user()?->company
     ? Access::for($request->user())
-        ->in(Company::find(session('active_company_id')))
+        ->in($request->user()->company)
         ->toArray([
             Permission::ProjectsView,
             Permission::ProjectsCreate,
@@ -703,46 +480,25 @@ use Maxiviper117\Access\Facades\Access;
     : [],
 ```
 
-The frontend receives:
+The frontend receives a simple permission map:
 
 ```php
 [
     'projects.view' => true,
     'projects.create' => true,
     'projects.update' => false,
-    'projects.delete' => false,
-    'tasks.view' => true,
-    'tasks.create' => true,
-    'tasks.update' => true,
-    'tasks.delete' => false,
     'members.invite' => true,
-    'billing.view' => true,
 ]
 ```
 
-Use it to shape the UI:
+## 10. Seed the Database
 
-```tsx
-// React example
-const access = page.props.access;
-
-return (
-    <div>
-        {access['projects.create'] && <button>New Project</button>}
-
-        {access['tasks.create'] && <AddTaskForm />}
-    </div>
-);
-```
-
-## 9. Seed the Database
-
-Create a seeder that sets up users, a company, and roles-per-company for testing:
+Create users, a company, membership rows, and scoped access assignments. Membership and authorization are separate writes.
 
 ```php
 namespace Database\Seeders;
 
-use App\Enums\Permission;
+use App\Enums\CompanyRole;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -755,51 +511,51 @@ class AccessSeeder extends Seeder
             ['email' => 'owner@example.com'],
             ['name' => 'Owner', 'password' => bcrypt('password')]
         );
+
         $admin = User::firstOrCreate(
             ['email' => 'admin@example.com'],
             ['name' => 'Admin', 'password' => bcrypt('password')]
         );
-        $manager = User::firstOrCreate(
-            ['email' => 'manager@example.com'],
-            ['name' => 'Manager', 'password' => bcrypt('password')]
-        );
+
         $member = User::firstOrCreate(
             ['email' => 'member@example.com'],
             ['name' => 'Member', 'password' => bcrypt('password')]
         );
 
-        $company = Company::factory()->create(['name' => 'Acme Corp', 'slug' => 'acme-corp']);
+        $company = Company::query()->firstOrCreate(
+            ['slug' => 'acme-corp'],
+            ['name' => 'Acme Corp']
+        );
 
-        // Attach users to the company (membership)
-        $company->users()->attach([
-            $owner->id,
-            $admin->id,
-            $manager->id,
-            $member->id,
+        $company->users()->syncWithoutDetaching([
+            $owner->id => ['role' => CompanyRole::Owner->value],
+            $admin->id => ['role' => CompanyRole::Admin->value],
+            $member->id => ['role' => CompanyRole::Member->value],
         ]);
 
-        // Each user gets a different role in the same company
-        $owner->in($company)->assignRole('Owner');
-        $admin->in($company)->assignRole('Admin');
-        $manager->in($company)->assignRole('Manager');
-        $member->in($company)->assignRole('Member');
+        $owner->in($company)->assignRole(CompanyRole::Owner->value);
+        $admin->in($company)->assignRole(CompanyRole::Admin->value);
+        $member->in($company)->assignRole(CompanyRole::Member->value);
+
+        $owner->switchCompany($company);
     }
 }
 ```
 
-Run the seeder (`access:sync` was already run in step 4 — the seeder only assigns existing roles to users, no re-sync needed):
+Run it:
 
 ```bash
 php artisan db:seed --class=AccessSeeder
 ```
 
-## 10. Write Tests
+## 11. Write Tests
 
 Test permission checks at the policy level:
 
 ```php
 namespace Tests\Unit;
 
+use App\Enums\CompanyRole;
 use App\Enums\Permission;
 use App\Models\Company;
 use App\Models\User;
@@ -807,107 +563,95 @@ use Tests\TestCase;
 
 class ProjectPolicyTest extends TestCase
 {
-    public function test_owner_can_create_projects()
+    public function test_owner_can_create_projects(): void
     {
         $user = User::factory()->create();
         $company = Company::factory()->create();
 
-        $user->in($company)->assignRole('Owner');
+        $company->users()->attach($user, ['role' => CompanyRole::Owner->value]);
+        $user->in($company)->assignRole(CompanyRole::Owner->value);
 
         $this->assertTrue(
             $user->in($company)->can(Permission::ProjectsCreate)
         );
     }
 
-    public function test_member_cannot_create_projects()
+    public function test_member_cannot_create_projects(): void
     {
         $user = User::factory()->create();
         $company = Company::factory()->create();
 
-        $user->in($company)->assignRole('Member');
+        $company->users()->attach($user, ['role' => CompanyRole::Member->value]);
+        $user->in($company)->assignRole(CompanyRole::Member->value);
 
         $this->assertFalse(
             $user->in($company)->can(Permission::ProjectsCreate)
         );
     }
 
-    public function test_permission_is_scoped_to_company()
+    public function test_permission_is_scoped_to_company(): void
     {
         $user = User::factory()->create();
         $companyA = Company::factory()->create();
         $companyB = Company::factory()->create();
 
-        // Owner in company A, Member in company B
-        $user->in($companyA)->assignRole('Owner');
-        $user->in($companyB)->assignRole('Member');
+        $companyA->users()->attach($user, ['role' => CompanyRole::Owner->value]);
+        $companyB->users()->attach($user, ['role' => CompanyRole::Member->value]);
 
-        $this->assertTrue(
-            $user->in($companyA)->can(Permission::ProjectsDelete)
-        );
+        $user->in($companyA)->assignRole(CompanyRole::Owner->value);
+        $user->in($companyB)->assignRole(CompanyRole::Member->value);
 
-        $this->assertFalse(
-            $user->in($companyB)->can(Permission::ProjectsDelete)
-        );
-    }
-
-    public function test_sync_creates_permissions()
-    {
-        $this->artisan('access:sync')
-            ->assertExitCode(0);
-
-        $this->assertDatabaseHas('access_permissions', [
-            'name' => Permission::ProjectsCreate->value,
-        ]);
+        $this->assertTrue($user->in($companyA)->can(Permission::ProjectsDelete));
+        $this->assertFalse($user->in($companyB)->can(Permission::ProjectsDelete));
     }
 }
 ```
 
-Test HTTP routes with the middleware:
+Test HTTP routes with the generated company middleware and access middleware:
 
 ```php
 namespace Tests\Feature;
 
+use App\Enums\CompanyRole;
 use App\Models\Company;
 use App\Models\User;
 use Tests\TestCase;
 
 class ProjectCreationTest extends TestCase
 {
-    public function test_owner_can_create_project_via_api()
+    public function test_owner_can_create_project_via_http(): void
     {
         $user = User::factory()->create();
         $company = Company::factory()->create();
 
-        $user->in($company)->assignRole('Owner');
+        $company->users()->attach($user, ['role' => CompanyRole::Owner->value]);
+        $user->in($company)->assignRole(CompanyRole::Owner->value);
 
         $response = $this
             ->actingAs($user)
-            ->postJson("/companies/{$company->slug}/projects", [
-                'name' => 'New Project',
-            ]);
+            ->post("/{$company->slug}/projects", ['name' => 'New Project']);
 
-        $response->assertCreated();
+        $response->assertRedirect();
     }
 
-    public function test_member_cannot_create_project_via_api()
+    public function test_member_cannot_create_project_via_http(): void
     {
         $user = User::factory()->create();
         $company = Company::factory()->create();
 
-        $user->in($company)->assignRole('Member');
+        $company->users()->attach($user, ['role' => CompanyRole::Member->value]);
+        $user->in($company)->assignRole(CompanyRole::Member->value);
 
         $response = $this
             ->actingAs($user)
-            ->postJson("/companies/{$company->slug}/projects", [
-                'name' => 'New Project',
-            ]);
+            ->post("/{$company->slug}/projects", ['name' => 'New Project']);
 
         $response->assertForbidden();
     }
 }
 ```
 
-## 11. Debug
+## 12. Debug
 
 Inspect a user's permissions in a company:
 
@@ -915,13 +659,13 @@ Inspect a user's permissions in a company:
 php artisan access:debug owner@example.com --scope=company:acme-corp
 ```
 
-Clear the cache after making config changes during development:
+Clear the cache after config changes:
 
 ```bash
 php artisan access:clear
 ```
 
-Dry-run before syncing role changes in production:
+Preview role changes before syncing:
 
 ```bash
 php artisan access:sync --dry-run
@@ -929,4 +673,4 @@ php artisan access:sync --dry-run
 
 ## What's Next
 
-This example covers scoped permissions. For apps without multi-tenancy, use [global-only mode](/tutorials/getting-started#path-b-global-only-setup). For deeper understanding of the design, read the [mental model](/explanation/mental-model).
+This example uses generated company scope scaffolding. For the lower-level architecture, read [Scaffold team scopes](/how-to/scaffold-team-scopes) and the [mental model](/explanation/mental-model).

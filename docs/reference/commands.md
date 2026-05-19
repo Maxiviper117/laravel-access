@@ -22,6 +22,7 @@ Scaffolds app-owned team/group support. The group name can be renamed to match y
 ```bash
 php artisan access:scope
 php artisan access:scope --name=company
+php artisan access:scope --name=company --frontend=react
 php artisan access:scope --name=alumnus --plural=alumni
 php artisan access:scope --name=workspace --force --migrate
 ```
@@ -37,6 +38,9 @@ Options:
 `--plural=`
 : Overrides the plural form.
 
+`--frontend=`
+: Invitation UI stack to generate. Supported values: `blade`, `react`, `vue`, `svelte`. In interactive mode, the command asks for this value. Non-interactive runs default to `blade`.
+
 `--force`
 : Overwrites existing scaffolded files.
 
@@ -46,7 +50,7 @@ Options:
 `--no-concern`
 : Skips patching `app/Models/User.php` with the generated `HasXxx` concern.
 
-Generated files include renamed migrations, models, a membership pivot model, invitation model and controller, `HasXxx` concern, `EnsureXxxMembership` middleware, role and permission enums, invitation routes, invite registration views, config updates, middleware alias registration, and URL defaults.
+Generated files include renamed migrations, models, a membership pivot model, invitation model and controller, `HasXxx` concern, `EnsureXxxMembership` middleware, role and permission enums, invitation routes, invite registration views or Inertia pages, config updates, middleware alias registration, and URL defaults.
 
 See [Scaffold team scopes](/how-to/scaffold-team-scopes) for the full generated architecture.
 

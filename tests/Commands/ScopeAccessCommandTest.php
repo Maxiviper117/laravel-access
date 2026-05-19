@@ -15,6 +15,12 @@ function cleanScopeScaffold(): void
         app_path('Http/Controllers/Auth/CompanyInvitationController.php'),
         resource_path('views/auth/company-invitation-error.blade.php'),
         resource_path('views/auth/company-invited-register.blade.php'),
+        resource_path('js/Pages/Auth/CompanyInvitationError.tsx'),
+        resource_path('js/Pages/Auth/CompanyInvitedRegister.tsx'),
+        resource_path('js/Pages/Auth/CompanyInvitationError.vue'),
+        resource_path('js/Pages/Auth/CompanyInvitedRegister.vue'),
+        resource_path('js/Pages/Auth/CompanyInvitationError.svelte'),
+        resource_path('js/Pages/Auth/CompanyInvitedRegister.svelte'),
         base_path('routes/company-invitations.php'),
     ] as $path) {
         File::delete($path);
@@ -76,6 +82,8 @@ PHP);
             ->and(app_path('Http/Middleware/EnsureCompanyMembership.php'))->toBeFile()
             ->and(app_path('Enums/CompanyRole.php'))->toBeFile()
             ->and(base_path('routes/company-invitations.php'))->toBeFile()
+            ->and(resource_path('views/auth/company-invitation-error.blade.php'))->toBeFile()
+            ->and(resource_path('views/auth/company-invited-register.blade.php'))->toBeFile()
             ->and(File::glob(database_path('migrations/*_create_companies_table.php')))->toHaveCount(1)
             ->and(File::glob(database_path('migrations/*_create_company_members_table.php')))->toHaveCount(1)
             ->and(File::glob(database_path('migrations/*_create_company_invitations_table.php')))->toHaveCount(1)
@@ -99,6 +107,10 @@ PHP);
             ->toContain('$role = $user->companyRole($scope);')
             ->toContain('abort_if(! $role || $role->level() < CompanyRole::from($minimumRole)->level(), 403);');
 
+        expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
+            ->not->toContain('use Inertia\\Inertia;')
+            ->toContain("return view('auth.company-invited-register'");
+
         expect(File::get(config_path('access.php')))
             ->toContain("'permission_enum' => \\App\\Enums\\CompanyPermission::class")
             ->toContain("'default_scope_model' => \\App\\Models\\Company::class")
@@ -118,6 +130,31 @@ PHP);
         } else {
             File::put($bootstrapPath, $originalBootstrap);
         }
+        cleanScopeScaffold();
+    }
+});
+
+it('can scaffold inertia react invitation pages', function () {
+    cleanScopeScaffold();
+
+    try {
+        $this->artisan('access:scope --name=company --frontend=react --no-concern')
+            ->assertSuccessful();
+
+        expect(resource_path('js/Pages/Auth/CompanyInvitationError.tsx'))->toBeFile()
+            ->and(resource_path('js/Pages/Auth/CompanyInvitedRegister.tsx'))->toBeFile()
+            ->and(resource_path('views/auth/company-invitation-error.blade.php'))->not->toBeFile()
+            ->and(resource_path('views/auth/company-invited-register.blade.php'))->not->toBeFile();
+
+        expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
+            ->toContain('use Inertia\\Inertia;')
+            ->toContain("Inertia::render('Auth/CompanyInvitationError'")
+            ->toContain("Inertia::render('Auth/CompanyInvitedRegister'");
+
+        expect(File::get(resource_path('js/Pages/Auth/CompanyInvitedRegister.tsx')))
+            ->toContain("import { Form } from '@inertiajs/react'")
+            ->toContain('Create account');
+    } finally {
         cleanScopeScaffold();
     }
 });

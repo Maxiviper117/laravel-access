@@ -37,6 +37,15 @@ php artisan access:scope --name=workspace
 php artisan access:scope --name=tenant
 ```
 
+Interactive mode also asks which invitation UI should be generated. Choose `blade`, `react`, `vue`, or `svelte`. For non-interactive setup, pass `--frontend`:
+
+```bash
+php artisan access:scope --name=company --frontend=blade
+php artisan access:scope --name=company --frontend=react
+php artisan access:scope --name=company --frontend=vue
+php artisan access:scope --name=company --frontend=svelte
+```
+
 The selected name drives every generated table, class, relationship, middleware, and route parameter.
 
 | Concept | `team` | `company` |
@@ -81,6 +90,15 @@ resources/views/auth/company-invitation-error.blade.php
 resources/views/auth/company-invited-register.blade.php
 ```
 
+If you choose an Inertia frontend, the Blade files are replaced with starter pages:
+
+```text
+resources/js/Pages/Auth/CompanyInvitationError.tsx
+resources/js/Pages/Auth/CompanyInvitedRegister.tsx
+```
+
+For Vue the extension is `.vue`; for Svelte the extension is `.svelte`.
+
 It also updates:
 
 ```text
@@ -105,6 +123,26 @@ The `bootstrap/app.php` update registers both the generated middleware alias and
 ```
 
 Pass `--no-concern` if you do not want the command to patch the `User` model.
+
+## Invitation UI
+
+The generated invitation UI is intentionally plain starter code. Most apps should customize it to match their auth layout, starter kit, validation styling, and design system.
+
+Blade output uses:
+
+```text
+resources/views/auth/company-invitation-error.blade.php
+resources/views/auth/company-invited-register.blade.php
+```
+
+Inertia output uses:
+
+```text
+resources/js/Pages/Auth/CompanyInvitationError.{tsx,vue,svelte}
+resources/js/Pages/Auth/CompanyInvitedRegister.{tsx,vue,svelte}
+```
+
+The Inertia pages are generated for Inertia v3 and use the current `<Form>` component from `@inertiajs/react`, `@inertiajs/vue3`, or `@inertiajs/svelte`.
 
 ## Use It Effectively With Laravel Access
 
@@ -269,7 +307,7 @@ public function invite(User $user, Company $company): bool
 
 The main manual wiring left after scaffolding is usually:
 
-- Adjust the generated Blade views to match your starter kit or frontend stack.
+- Adjust the generated Blade views or Inertia pages to match your starter kit and frontend stack.
 - Add your own UI/controllers for creating companies and sending invitations.
 - Decide whether membership role names should mirror Laravel Access role names.
 

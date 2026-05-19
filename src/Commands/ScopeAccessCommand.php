@@ -12,6 +12,7 @@ class ScopeAccessCommand extends Command
         {--name= : Scope name to use}
         {--singular= : Override singular form}
         {--plural= : Override plural form}
+        {--frontend= : Invitation UI stack to generate: blade, react, vue, or svelte}
         {--force : Overwrite existing published files}
         {--migrate : Run migrations after scaffolding}
         {--no-concern : Skip patching the User model with the HasXxx concern}';
@@ -76,6 +77,7 @@ class ScopeAccessCommand extends Command
 
         $singular = Str::of($this->option('singular') ?: $base)->trim()->lower()->snake()->toString();
         $plural = Str::of($this->option('plural') ?: Str::plural($singular))->trim()->lower()->snake()->toString();
+        $frontend = $this->resolveFrontend();
 
         return [
             'singular' => $singular,
@@ -88,7 +90,31 @@ class ScopeAccessCommand extends Command
             'invitationsTable' => "{$singular}_invitations",
             'currentColumn' => "current_{$singular}_id",
             'currentRouteKey' => "current_{$singular}",
+            'frontend' => $frontend,
         ];
+    }
+
+    private function resolveFrontend(): string
+    {
+        $frontend = $this->option('frontend');
+
+        if ($frontend === null && ! $this->option('name')) {
+            $frontend = $this->choice(
+                'Which invitation UI should be generated?',
+                ['blade', 'react', 'vue', 'svelte'],
+                'blade'
+            );
+        }
+
+        $frontend = Str::of($frontend ?: 'blade')->trim()->lower()->toString();
+
+        if (! in_array($frontend, ['blade', 'react', 'vue', 'svelte'], true)) {
+            $this->warn("Unsupported frontend [{$frontend}], falling back to blade.");
+
+            return 'blade';
+        }
+
+        return $frontend;
     }
 
     /**
@@ -126,7 +152,7 @@ class ScopeAccessCommand extends Command
         $studly = $names['studly'];
         $studlyPlural = $names['studlyPlural'];
 
-        return [
+        $files = [
             app_path("Models/{$studly}.php") => $this->scopeModel($names),
             app_path('Models/Membership.php') => $this->membershipModel($names),
             app_path("Models/{$studly}Invitation.php") => $this->invitationModel($names),
@@ -135,10 +161,36 @@ class ScopeAccessCommand extends Command
             app_path("Enums/{$studly}Role.php") => $this->roleEnum($names),
             app_path("Enums/{$studly}Permission.php") => $this->permissionEnum($names),
             app_path("Http/Controllers/Auth/{$studly}InvitationController.php") => $this->invitationController($names),
-            resource_path("views/auth/{$names['singular']}-invitation-error.blade.php") => $this->errorView($names),
-            resource_path("views/auth/{$names['singular']}-invited-register.blade.php") => $this->registerView($names),
             base_path("routes/{$names['singular']}-invitations.php") => $this->routes($names),
         ];
+
+        return $files + $this->invitationUiFiles($names);
+    }
+
+    /**
+     * @param  array<string, string>  $names
+     * @return array<string, string>
+     */
+    private function invitationUiFiles(array $names): array
+    {
+        return match ($names['frontend']) {
+            'react' => [
+                resource_path('js/Pages/Auth/'.$names['studly'].'InvitationError.tsx') => $this->reactErrorPage($names),
+                resource_path('js/Pages/Auth/'.$names['studly'].'InvitedRegister.tsx') => $this->reactRegisterPage($names),
+            ],
+            'vue' => [
+                resource_path('js/Pages/Auth/'.$names['studly'].'InvitationError.vue') => $this->vueErrorPage($names),
+                resource_path('js/Pages/Auth/'.$names['studly'].'InvitedRegister.vue') => $this->vueRegisterPage($names),
+            ],
+            'svelte' => [
+                resource_path('js/Pages/Auth/'.$names['studly'].'InvitationError.svelte') => $this->svelteErrorPage($names),
+                resource_path('js/Pages/Auth/'.$names['studly'].'InvitedRegister.svelte') => $this->svelteRegisterPage($names),
+            ],
+            default => [
+                resource_path("views/auth/{$names['singular']}-invitation-error.blade.php") => $this->errorView($names),
+                resource_path("views/auth/{$names['singular']}-invited-register.blade.php") => $this->registerView($names),
+            ],
+        };
     }
 
     /**
@@ -711,6 +763,14 @@ PHP;
 
     private function invitationController(array $n): string
     {
+        $inertiaImports = $n['frontend'] !== 'blade'
+            ? "use Inertia\\Inertia;\nuse Inertia\\Response as InertiaResponse;\n"
+            : '';
+        $responseType = $n['frontend'] !== 'blade'
+            ? 'View|InertiaResponse|RedirectResponse|SymfonyResponse'
+            : 'View|RedirectResponse|SymfonyResponse';
+        $renderType = $n['frontend'] !== 'blade' ? 'InertiaResponse' : 'View';
+
         return <<<PHP
 <?php
 
@@ -725,10 +785,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+{$inertiaImports}
 
 class {$n['studly']}InvitationController extends Controller
 {
-    public function show({$n['studly']}Invitation \$invitation): View|RedirectResponse
+    public function show({$n['studly']}Invitation \$invitation): {$responseType}
     {
         if (\$response = \$this->invalidInvitationResponse(\$invitation)) {
             return \$response;
@@ -740,58 +802,92 @@ class {$n['studly']}InvitationController extends Controller
             return redirect()->route('{$n['singular']}.invitations.register', \$invitation);
         }
 
-        return view('auth.{$n['singular']}-invitation-error', [
-            'message' => \$user ? null : 'This invitation can only be accepted by an existing user.',
-            'invitation' => \$invitation,
-        ]);
+        return \$this->renderInvitationError(\$user ? null : 'This invitation can only be accepted by an existing user.', \$invitation);
     }
 
-    public function accept(Request \$request, {$n['studly']}Invitation \$invitation): RedirectResponse
+    public function registerForm({$n['studly']}Invitation \$invitation): {$responseType}
     {
         if (\$response = \$this->invalidInvitationResponse(\$invitation)) {
             return \$response;
         }
 
-        abort_if(! \$request->user() || \$request->user()->email !== \$invitation->email, 403);
+        return \$this->renderRegisterForm(\$invitation);
+    }
 
-        \$this->acceptInvitation(\$invitation, \$request->user());
+    private function renderInvitationError(?string \$message, {$n['studly']}Invitation \$invitation): {$renderType}
+    {
+PHP
+            .$this->renderInvitationErrorBody($n).
+            <<<PHP
+    }
+
+    private function renderRegisterForm({$n['studly']}Invitation \$invitation): {$renderType}
+    {
+PHP
+            .$this->renderRegisterFormBody($n).
+            <<<PHP
+    }
+
+    private function invitationProps({$n['studly']}Invitation \$invitation): array
+    {
+        return [
+            'code' => \$invitation->code,
+            'email' => \$invitation->email,
+        ];
+    }
+
+PHP
+            .<<<'PHP'
+    public function accept(Request $request, 
+PHP
+            ."{$n['studly']}Invitation \$invitation): RedirectResponse\n".
+            <<<'PHP'
+    {
+        if ($response = $this->invalidInvitationResponse($invitation)) {
+            return $response;
+        }
+
+        abort_if(! $request->user() || $request->user()->email !== $invitation->email, 403);
+
+        $this->acceptInvitation($invitation, $request->user());
 
         return redirect()->route(config('access.invitations.redirect_after_accept', 'dashboard'));
     }
 
-    public function registerForm({$n['studly']}Invitation \$invitation): View|RedirectResponse
+PHP
+            .<<<'PHP'
+    public function register(Request $request, 
+PHP
+            ."{$n['studly']}Invitation \$invitation): RedirectResponse\n".
+            <<<'PHP'
     {
-        if (\$response = \$this->invalidInvitationResponse(\$invitation)) {
-            return \$response;
+        if ($response = $this->invalidInvitationResponse($invitation)) {
+            return $response;
         }
 
-        return view('auth.{$n['singular']}-invited-register', ['invitation' => \$invitation]);
-    }
-
-    public function register(Request \$request, {$n['studly']}Invitation \$invitation): RedirectResponse
-    {
-        if (\$response = \$this->invalidInvitationResponse(\$invitation)) {
-            return \$response;
-        }
-
-        \$validated = \$request->validate([
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        \$user = User::create([
-            'name' => \$validated['name'],
-            'email' => \$invitation->email,
-            'password' => Hash::make(\$validated['password']),
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $invitation->email,
+            'password' => Hash::make($validated['password']),
         ]);
 
-        \$this->acceptInvitation(\$invitation, \$user);
-        Auth::login(\$user);
+        $this->acceptInvitation($invitation, $user);
+        Auth::login($user);
 
         return redirect()->route(config('access.invitations.redirect_after_accept', 'dashboard'));
     }
 
-    private function acceptInvitation({$n['studly']}Invitation \$invitation, User \$user): void
+PHP
+            .<<<'PHP'
+    private function acceptInvitation(
+PHP
+            ."{$n['studly']}Invitation \$invitation, User \$user): void\n".
+            <<<PHP
     {
         \$invitation->{$n['camel']}->users()->syncWithoutDetaching([
             \$user->getKey() => ['role' => \$invitation->role->value],
@@ -801,20 +897,80 @@ class {$n['studly']}InvitationController extends Controller
         \$invitation->forceFill(['accepted_at' => now()])->save();
     }
 
-    private function invalidInvitationResponse({$n['studly']}Invitation \$invitation): ?RedirectResponse
+    private function invalidInvitationResponse({$n['studly']}Invitation \$invitation): ?SymfonyResponse
     {
         if (\$invitation->isAccepted() || \$invitation->isExpired()) {
+PHP
+            .$this->invalidInvitationResponseBody($n).
+            <<<'PHP'
+        }
+
+        return null;
+    }
+}
+
+PHP;
+    }
+
+    private function renderInvitationErrorBody(array $n): string
+    {
+        if ($n['frontend'] !== 'blade') {
+            return <<<PHP
+        return Inertia::render('Auth/{$n['studly']}InvitationError', [
+            'message' => \$message ?? 'This {$n['singular']} invitation cannot be accepted.',
+            'invitation' => \$this->invitationProps(\$invitation),
+        ]);
+
+PHP;
+        }
+
+        return <<<PHP
+        return view('auth.{$n['singular']}-invitation-error', [
+            'message' => \$message ?? 'This {$n['singular']} invitation cannot be accepted.',
+            'invitation' => \$invitation,
+        ]);
+
+PHP;
+    }
+
+    private function invalidInvitationResponseBody(array $n): string
+    {
+        if ($n['frontend'] !== 'blade') {
+            return <<<'PHP'
+            return $this->renderInvitationError(
+                $invitation->isAccepted()
+                    ? 'This invitation has already been accepted.'
+                    : 'This invitation has expired.',
+                $invitation
+            )->toResponse(request())->setStatusCode(410);
+
+PHP;
+        }
+
+        return <<<PHP
             return response()->view('auth.{$n['singular']}-invitation-error', [
                 'message' => \$invitation->isAccepted()
                     ? 'This invitation has already been accepted.'
                     : 'This invitation has expired.',
                 'invitation' => \$invitation,
             ], 410);
+
+PHP;
+    }
+
+    private function renderRegisterFormBody(array $n): string
+    {
+        if ($n['frontend'] !== 'blade') {
+            return <<<PHP
+        return Inertia::render('Auth/{$n['studly']}InvitedRegister', [
+            'invitation' => \$this->invitationProps(\$invitation),
+        ]);
+
+PHP;
         }
 
-        return null;
-    }
-}
+        return <<<PHP
+        return view('auth.{$n['singular']}-invited-register', ['invitation' => \$invitation]);
 
 PHP;
     }
@@ -864,5 +1020,208 @@ BLADE;
 </x-guest-layout>
 
 BLADE;
+    }
+
+    private function reactErrorPage(array $n): string
+    {
+        return <<<TSX
+type Invitation = {
+    code: string
+    email: string
+}
+
+type Props = {
+    message: string
+    invitation: Invitation
+}
+
+export default function {$n['studly']}InvitationError({ message, invitation }: Props) {
+    return (
+        <main>
+            <h1>{$n['studly']} invitation</h1>
+            <p>{message}</p>
+            <p>{invitation.email}</p>
+        </main>
+    )
+}
+
+TSX;
+    }
+
+    private function reactRegisterPage(array $n): string
+    {
+        return <<<TSX
+import { Form } from '@inertiajs/react'
+
+type Invitation = {
+    code: string
+    email: string
+}
+
+type Props = {
+    invitation: Invitation
+}
+
+export default function {$n['studly']}InvitedRegister({ invitation }: Props) {
+    return (
+        <main>
+            <h1>Create your account</h1>
+
+            <Form action={`/invitations/\${invitation.code}/register`} method="post">
+                {({ errors, processing }) => (
+                    <>
+                        <label htmlFor="email">Email</label>
+                        <input id="email" type="email" value={invitation.email} disabled />
+
+                        <label htmlFor="name">Name</label>
+                        <input id="name" name="name" type="text" autoFocus required />
+                        {errors.name && <p>{errors.name}</p>}
+
+                        <label htmlFor="password">Password</label>
+                        <input id="password" name="password" type="password" autoComplete="new-password" required />
+                        {errors.password && <p>{errors.password}</p>}
+
+                        <label htmlFor="password_confirmation">Confirm password</label>
+                        <input id="password_confirmation" name="password_confirmation" type="password" autoComplete="new-password" required />
+
+                        <button type="submit" disabled={processing}>
+                            {processing ? 'Creating...' : 'Create account'}
+                        </button>
+                    </>
+                )}
+            </Form>
+        </main>
+    )
+}
+
+TSX;
+    }
+
+    private function vueErrorPage(array $n): string
+    {
+        return <<<VUE
+<script setup lang="ts">
+defineProps<{
+    message: string
+    invitation: {
+        code: string
+        email: string
+    }
+}>()
+</script>
+
+<template>
+    <main>
+        <h1>{$n['studly']} invitation</h1>
+        <p>{{ message }}</p>
+        <p>{{ invitation.email }}</p>
+    </main>
+</template>
+
+VUE;
+    }
+
+    private function vueRegisterPage(array $n): string
+    {
+        return <<<'VUE'
+<script setup lang="ts">
+import { Form } from '@inertiajs/vue3'
+
+defineProps<{
+    invitation: {
+        code: string
+        email: string
+    }
+}>()
+</script>
+
+<template>
+    <main>
+        <h1>Create your account</h1>
+
+        <Form :action="`/invitations/${invitation.code}/register`" method="post" v-slot="{ errors, processing }">
+            <label for="email">Email</label>
+            <input id="email" type="email" :value="invitation.email" disabled>
+
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" required autofocus>
+            <p v-if="errors.name">{{ errors.name }}</p>
+
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" required>
+            <p v-if="errors.password">{{ errors.password }}</p>
+
+            <label for="password_confirmation">Confirm password</label>
+            <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
+
+            <button type="submit" :disabled="processing">
+                {{ processing ? 'Creating...' : 'Create account' }}
+            </button>
+        </Form>
+    </main>
+</template>
+
+VUE;
+    }
+
+    private function svelteErrorPage(array $n): string
+    {
+        return <<<SVELTE
+<script lang="ts">
+export let message: string
+export let invitation: {
+    code: string
+    email: string
+}
+</script>
+
+<main>
+    <h1>{$n['studly']} invitation</h1>
+    <p>{message}</p>
+    <p>{invitation.email}</p>
+</main>
+
+SVELTE;
+    }
+
+    private function svelteRegisterPage(array $n): string
+    {
+        return <<<'SVELTE'
+<script lang="ts">
+import { Form } from '@inertiajs/svelte'
+
+export let invitation: {
+    code: string
+    email: string
+}
+</script>
+
+<main>
+    <h1>Create your account</h1>
+
+    <Form action={`/invitations/${invitation.code}/register`} method="post">
+        {#snippet children({ errors, processing })}
+            <label for="email">Email</label>
+            <input id="email" type="email" value={invitation.email} disabled>
+
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" required autofocus>
+            {#if errors.name}<p>{errors.name}</p>{/if}
+
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" required>
+            {#if errors.password}<p>{errors.password}</p>{/if}
+
+            <label for="password_confirmation">Confirm password</label>
+            <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
+
+            <button type="submit" disabled={processing}>
+                {processing ? 'Creating...' : 'Create account'}
+            </button>
+        {/snippet}
+    </Form>
+</main>
+
+SVELTE;
     }
 }
