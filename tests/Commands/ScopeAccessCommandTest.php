@@ -116,6 +116,14 @@ PHP);
             ->toContain("return view('auth.company-invited-register'")
             ->toContain("'companyName' => \$invitation->company->name");
 
+        expect(File::get(resource_path('views/auth/company-invitation-error.blade.php')))
+            ->toContain('class="mx-auto flex min-h-screen')
+            ->toContain('rounded-lg border border-gray-200 bg-white');
+
+        expect(File::get(resource_path('views/auth/company-invited-register.blade.php')))
+            ->toContain('class="space-y-5"')
+            ->toContain('class="w-full rounded-md bg-gray-950');
+
         expect(File::get(config_path('access.php')))
             ->toContain("'permission_enum' => \\App\\Enums\\CompanyPermission::class")
             ->toContain("'default_scope_model' => \\App\\Models\\Company::class")
@@ -206,7 +214,9 @@ it('can scaffold inertia react invitation pages', function () {
 
         expect(File::get(resource_path('js/Pages/auth/CompanyInvitedRegister.tsx')))
             ->toContain("import { Form } from '@inertiajs/react'")
-            ->toContain('Create account');
+            ->toContain('Create account')
+            ->toContain('className="flex min-h-screen')
+            ->toContain('className="w-full rounded-md bg-gray-950');
     } finally {
         cleanScopeScaffold();
     }
@@ -228,6 +238,10 @@ it('keeps inertia generated page path casing aligned with render names', functio
         expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
             ->toContain("Inertia::render('auth/CompanyInvitationError'")
             ->toContain("Inertia::render('auth/CompanyInvitedRegister'");
+
+        expect(File::get(resource_path('js/Pages/auth/CompanyInvitedRegister.vue')))
+            ->toContain('class="flex min-h-screen')
+            ->toContain('class="w-full rounded-md bg-gray-950');
     } finally {
         cleanScopeScaffold();
     }
@@ -245,6 +259,8 @@ it('uses inertia v3 svelte props syntax for svelte invitation pages', function (
 
         expect(File::get(resource_path('js/Pages/auth/CompanyInvitedRegister.svelte')))
             ->toContain('} = $props()')
+            ->toContain('class="flex min-h-screen')
+            ->toContain('class="w-full rounded-md bg-gray-950')
             ->not->toContain('export let invitation');
 
         expect(File::get(resource_path('js/Pages/auth/CompanyInvitationError.svelte')))

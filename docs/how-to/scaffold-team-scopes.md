@@ -139,7 +139,7 @@ Pass `--no-concern` if you do not want the command to patch the `User` model.
 
 ## Invitation UI
 
-The generated invitation UI is intentionally plain starter code. Most apps should customize it to match their auth layout, starter kit, validation styling, and design system.
+The generated invitation UI is basic Tailwind starter code. Most apps should customize it to match their auth layout, starter kit, validation styling, and design system.
 
 Blade output uses:
 

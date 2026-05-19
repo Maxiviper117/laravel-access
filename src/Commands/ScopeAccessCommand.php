@@ -1272,8 +1272,21 @@ PHP;
     {
         return <<<BLADE
 <x-guest-layout>
-    <div>
-        {{ \$message ?? 'This {$n['singular']} invitation cannot be accepted.' }}
+    <div class="mx-auto flex min-h-screen w-full max-w-md items-center px-6 py-12">
+        <div class="w-full rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+            <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+                <span class="text-xl font-semibold">!</span>
+            </div>
+
+            <h1 class="text-2xl font-semibold text-gray-950">{$n['studly']} invitation</h1>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+                {{ \$message ?? 'This {$n['singular']} invitation cannot be accepted.' }}
+            </p>
+
+            <div class="mt-6 rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                {{ \$invitation->email }}
+            </div>
+        </div>
     </div>
 </x-guest-layout>
 
@@ -1284,18 +1297,43 @@ BLADE;
     {
         return <<<BLADE
 <x-guest-layout>
-    <form method="POST" action="{{ route('{$n['singular']}.invitations.register.store', \$invitation) }}">
-        @csrf
+    <div class="mx-auto flex min-h-screen w-full max-w-md items-center px-6 py-12">
+        <div class="w-full rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+            <div class="mb-8">
+                <p class="text-sm font-medium text-gray-500">Invitation for {{ \$invitation->email }}</p>
+                <h1 class="mt-2 text-2xl font-semibold text-gray-950">Create your account</h1>
+                <p class="mt-3 text-sm leading-6 text-gray-600">Join {{ \$invitation->{$n['camel']}->name }}.</p>
+            </div>
 
-        <p>Join {{ \$invitation->{$n['camel']}->name }}.</p>
+            <form method="POST" action="{{ route('{$n['singular']}.invitations.register.store', \$invitation) }}" class="space-y-5">
+                @csrf
 
-        <input type="email" name="email" value="{{ \$invitation->email }}" disabled>
-        <input type="text" name="name" value="{{ old('name') }}" required autofocus>
-        <input type="password" name="password" required autocomplete="new-password">
-        <input type="password" name="password_confirmation" required autocomplete="new-password">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input id="email" type="email" value="{{ \$invitation->email }}" disabled class="mt-2 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 shadow-sm">
+                </div>
 
-        <button type="submit">Create account</button>
-    </form>
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                    <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                    @error('name')<p class="mt-2 text-sm text-red-600">{{ \$message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input id="password" type="password" name="password" required autocomplete="new-password" class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                    @error('password')<p class="mt-2 text-sm text-red-600">{{ \$message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm password</label>
+                    <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                </div>
+
+                <button type="submit" class="w-full rounded-md bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2">Create account</button>
+            </form>
+        </div>
+    </div>
 </x-guest-layout>
 
 BLADE;
@@ -1317,11 +1355,20 @@ type Props = {
 
 export default function {$n['studly']}InvitationError({ message, invitation }: Props) {
     return (
-        <main>
-            <h1>{$n['studly']} invitation</h1>
-            <p>{message}</p>
-            <p>{invitation.{$n['camel']}Name}</p>
-            <p>{invitation.email}</p>
+        <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
+            <section className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-xl font-semibold text-red-600">
+                    !
+                </div>
+
+                <h1 className="text-2xl font-semibold text-gray-950">{$n['studly']} invitation</h1>
+                <p className="mt-3 text-sm leading-6 text-gray-600">{message}</p>
+
+                <div className="mt-6 rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                    <p className="font-medium">{invitation.{$n['camel']}Name}</p>
+                    <p className="mt-1 text-gray-500">{invitation.email}</p>
+                </div>
+            </section>
         </main>
     )
 }
@@ -1346,33 +1393,46 @@ type Props = {
 
 export default function {$n['studly']}InvitedRegister({ invitation }: Props) {
     return (
-        <main>
-            <h1>Create your account</h1>
-            <p>Join {invitation.{$n['camel']}Name}.</p>
+        <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
+            <section className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+                <div className="mb-8">
+                    <p className="text-sm font-medium text-gray-500">Invitation for {invitation.email}</p>
+                    <h1 className="mt-2 text-2xl font-semibold text-gray-950">Create your account</h1>
+                    <p className="mt-3 text-sm leading-6 text-gray-600">Join {invitation.{$n['camel']}Name}.</p>
+                </div>
 
             <Form action={`/invitations/\${invitation.code}/register`} method="post">
                 {({ errors, processing }) => (
-                    <>
-                        <label htmlFor="email">Email</label>
-                        <input id="email" type="email" value={invitation.email} disabled />
+                    <div className="space-y-5">
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                            <input id="email" type="email" value={invitation.email} disabled className="mt-2 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 shadow-sm" />
+                        </div>
 
-                        <label htmlFor="name">Name</label>
-                        <input id="name" name="name" type="text" autoFocus required />
-                        {errors.name && <p>{errors.name}</p>}
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+                            <input id="name" name="name" type="text" autoFocus required className="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950" />
+                            {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
+                        </div>
 
-                        <label htmlFor="password">Password</label>
-                        <input id="password" name="password" type="password" autoComplete="new-password" required />
-                        {errors.password && <p>{errors.password}</p>}
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                            <input id="password" name="password" type="password" autoComplete="new-password" required className="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950" />
+                            {errors.password && <p className="mt-2 text-sm text-red-600">{errors.password}</p>}
+                        </div>
 
-                        <label htmlFor="password_confirmation">Confirm password</label>
-                        <input id="password_confirmation" name="password_confirmation" type="password" autoComplete="new-password" required />
+                        <div>
+                            <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">Confirm password</label>
+                            <input id="password_confirmation" name="password_confirmation" type="password" autoComplete="new-password" required className="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950" />
+                        </div>
 
-                        <button type="submit" disabled={processing}>
+                        <button type="submit" disabled={processing} className="w-full rounded-md bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70">
                             {processing ? 'Creating...' : 'Create account'}
                         </button>
-                    </>
+                    </div>
                 )}
             </Form>
+            </section>
         </main>
     )
 }
@@ -1395,11 +1455,20 @@ defineProps<{
 </script>
 
 <template>
-    <main>
-        <h1>{$n['studly']} invitation</h1>
-        <p>{{ message }}</p>
-        <p>{{ invitation.{$n['camel']}Name }}</p>
-        <p>{{ invitation.email }}</p>
+    <main class="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
+        <section class="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+            <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-xl font-semibold text-red-600">
+                !
+            </div>
+
+            <h1 class="text-2xl font-semibold text-gray-950">{$n['studly']} invitation</h1>
+            <p class="mt-3 text-sm leading-6 text-gray-600">{{ message }}</p>
+
+            <div class="mt-6 rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                <p class="font-medium">{{ invitation.{$n['camel']}Name }}</p>
+                <p class="mt-1 text-gray-500">{{ invitation.email }}</p>
+            </div>
+        </section>
     </main>
 </template>
 
@@ -1422,29 +1491,44 @@ defineProps<{
 </script>
 
 <template>
-    <main>
-        <h1>Create your account</h1>
-        <p>Join {{ invitation.{$n['camel']}Name }}.</p>
+    <main class="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
+        <section class="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+            <div class="mb-8">
+                <p class="text-sm font-medium text-gray-500">Invitation for {{ invitation.email }}</p>
+                <h1 class="mt-2 text-2xl font-semibold text-gray-950">Create your account</h1>
+                <p class="mt-3 text-sm leading-6 text-gray-600">Join {{ invitation.{$n['camel']}Name }}.</p>
+            </div>
 
         <Form :action="`/invitations/\${invitation.code}/register`" method="post" v-slot="{ errors, processing }">
-            <label for="email">Email</label>
-            <input id="email" type="email" :value="invitation.email" disabled>
+            <div class="space-y-5">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input id="email" type="email" :value="invitation.email" disabled class="mt-2 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 shadow-sm">
+                </div>
 
-            <label for="name">Name</label>
-            <input id="name" name="name" type="text" required autofocus>
-            <p v-if="errors.name">{{ errors.name }}</p>
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                    <input id="name" name="name" type="text" required autofocus class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                    <p v-if="errors.name" class="mt-2 text-sm text-red-600">{{ errors.name }}</p>
+                </div>
 
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" autocomplete="new-password" required>
-            <p v-if="errors.password">{{ errors.password }}</p>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="new-password" required class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                    <p v-if="errors.password" class="mt-2 text-sm text-red-600">{{ errors.password }}</p>
+                </div>
 
-            <label for="password_confirmation">Confirm password</label>
-            <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
+                <div>
+                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm password</label>
+                    <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                </div>
 
-            <button type="submit" :disabled="processing">
-                {{ processing ? 'Creating...' : 'Create account' }}
-            </button>
+                <button type="submit" :disabled="processing" class="w-full rounded-md bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70">
+                    {{ processing ? 'Creating...' : 'Create account' }}
+                </button>
+            </div>
         </Form>
+        </section>
     </main>
 </template>
 
@@ -1465,11 +1549,20 @@ let { message, invitation }: {
 } = \$props()
 </script>
 
-<main>
-    <h1>{$n['studly']} invitation</h1>
-    <p>{message}</p>
-    <p>{invitation.{$n['camel']}Name}</p>
-    <p>{invitation.email}</p>
+<main class="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
+    <section class="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+        <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-xl font-semibold text-red-600">
+            !
+        </div>
+
+        <h1 class="text-2xl font-semibold text-gray-950">{$n['studly']} invitation</h1>
+        <p class="mt-3 text-sm leading-6 text-gray-600">{message}</p>
+
+        <div class="mt-6 rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            <p class="font-medium">{invitation.{$n['camel']}Name}</p>
+            <p class="mt-1 text-gray-500">{invitation.email}</p>
+        </div>
+    </section>
 </main>
 
 SVELTE;
@@ -1490,31 +1583,46 @@ let { invitation }: {
 } = \$props()
 </script>
 
-<main>
-    <h1>Create your account</h1>
-    <p>Join {invitation.{$n['camel']}Name}.</p>
+<main class="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
+    <section class="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+        <div class="mb-8">
+            <p class="text-sm font-medium text-gray-500">Invitation for {invitation.email}</p>
+            <h1 class="mt-2 text-2xl font-semibold text-gray-950">Create your account</h1>
+            <p class="mt-3 text-sm leading-6 text-gray-600">Join {invitation.{$n['camel']}Name}.</p>
+        </div>
 
     <Form action={`/invitations/\${invitation.code}/register`} method="post">
         {#snippet children({ errors, processing })}
-            <label for="email">Email</label>
-            <input id="email" type="email" value={invitation.email} disabled>
+            <div class="space-y-5">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input id="email" type="email" value={invitation.email} disabled class="mt-2 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 shadow-sm">
+                </div>
 
-            <label for="name">Name</label>
-            <input id="name" name="name" type="text" required autofocus>
-            {#if errors.name}<p>{errors.name}</p>{/if}
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                    <input id="name" name="name" type="text" required autofocus class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                    {#if errors.name}<p class="mt-2 text-sm text-red-600">{errors.name}</p>{/if}
+                </div>
 
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" autocomplete="new-password" required>
-            {#if errors.password}<p>{errors.password}</p>{/if}
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="new-password" required class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                    {#if errors.password}<p class="mt-2 text-sm text-red-600">{errors.password}</p>{/if}
+                </div>
 
-            <label for="password_confirmation">Confirm password</label>
-            <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
+                <div>
+                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm password</label>
+                    <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-950 shadow-sm focus:border-gray-950 focus:outline-none focus:ring-1 focus:ring-gray-950">
+                </div>
 
-            <button type="submit" disabled={processing}>
-                {processing ? 'Creating...' : 'Create account'}
-            </button>
+                <button type="submit" disabled={processing} class="w-full rounded-md bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70">
+                    {processing ? 'Creating...' : 'Create account'}
+                </button>
+            </div>
         {/snippet}
     </Form>
+    </section>
 </main>
 
 SVELTE;
