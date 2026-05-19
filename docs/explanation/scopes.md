@@ -33,10 +33,24 @@ Scopes do not prove membership by themselves. Your app still owns membership, in
 For example, this role assignment says the user has `Owner` access in a company:
 
 ```php
-$user->in($company)->assignRole('Owner');
+$user->in($company)->assignRole(CompanyRole::Owner->value);
 ```
 
 It does not create a `company_user` row or invite the user into the company. Keep those concepts in your application models.
+
+The optional `access:scope` command can generate that application layer for you, but the separation remains:
+
+- Generated scope tables track membership, invitations, and the user's current scope.
+- Laravel Access tables track permissions, roles, and assignments.
+
+For example:
+
+```php
+$company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
+$user->in($company)->assignRole(CompanyRole::Admin->value);
+```
+
+The first line is membership. The second line is authorization.
 
 ## Optional Scope Scaffolding
 
@@ -51,7 +65,7 @@ The command scaffolds first-party app code: a `Company` model, membership and in
 The authorization API does not change:
 
 ```php
-$user->in($company)->assignRole('Admin');
+$user->in($company)->assignRole(CompanyRole::Admin->value);
 $user->in($company)->can(Permission::UsersInvite);
 ```
 

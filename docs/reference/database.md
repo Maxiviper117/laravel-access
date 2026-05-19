@@ -86,3 +86,25 @@ Scoped rows store both scope columns:
 scope_type = App\Models\Company
 scope_id = 1
 ```
+
+## Scope Scaffold Tables
+
+The optional `access:scope` command generates additional application tables such as:
+
+```text
+companies
+company_members
+company_invitations
+users.current_company_id
+```
+
+Those tables are not Laravel Access authorization tables. They represent membership, invitations, and current scope state for your app.
+
+Laravel Access still stores permissions, roles, and assignments in the `access_*` tables. A common company setup writes to both systems:
+
+```php
+$company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
+$user->in($company)->assignRole(CompanyRole::Admin->value);
+```
+
+The membership row says the user belongs to the company. The access assignment says the user has the `Admin` authorization role inside that company.

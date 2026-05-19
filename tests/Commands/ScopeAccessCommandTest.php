@@ -86,6 +86,19 @@ PHP);
             ->toContain("return 'slug';")
             ->toContain("'company_members'");
 
+        expect(File::get(app_path('Models/Membership.php')))
+            ->toContain('use App\Enums\CompanyRole;')
+            ->toContain("'role' => CompanyRole::class");
+
+        expect(File::get(app_path('Concerns/HasCompanies.php')))
+            ->toContain('use App\Enums\CompanyRole;')
+            ->toContain('->using(Membership::class)')
+            ->toContain('public function companyRole(Company $scope): ?CompanyRole');
+
+        expect(File::get(app_path('Http/Middleware/EnsureCompanyMembership.php')))
+            ->toContain('$role = $user->companyRole($scope);')
+            ->toContain('abort_if(! $role || $role->level() < CompanyRole::from($minimumRole)->level(), 403);');
+
         expect(File::get(config_path('access.php')))
             ->toContain("'default_scope_model' => \\App\\Models\\Company::class")
             ->toContain("'model' => \\App\\Models\\Company::class")
@@ -95,7 +108,8 @@ PHP);
 
         expect(File::get($bootstrapPath))
             ->toContain("'company' => \\App\\Http\\Middleware\\EnsureCompanyMembership::class")
-            ->toContain("require __DIR__.'/../routes/company-invitations.php';");
+            ->toContain("\\Illuminate\\Support\\Facades\\Route::middleware('web')")
+            ->toContain("->group(base_path('routes/company-invitations.php'));");
     } finally {
         File::delete($configPath);
         if ($originalBootstrap === null) {

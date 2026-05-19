@@ -268,7 +268,7 @@ PHP;
         if (! str_contains($contents, $routeFile)) {
             $patched = preg_replace(
                 "/(->withRouting\\([\\s\\S]*?health: ['\"]\\/up['\"],\\R)(\\s*\\))/",
-                "$1        then: function (): void {\n            require __DIR__.'/../{$routeFile}';\n        },\n$2",
+                "$1        then: function (): void {\n            \\Illuminate\\Support\\Facades\\Route::middleware('web')\n                ->group(base_path('{$routeFile}'));\n        },\n$2",
                 $contents,
                 1
             );
@@ -494,6 +494,7 @@ PHP;
 
 namespace App\Models;
 
+use App\Enums\\{$n['studly']}Role;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class Membership extends Pivot
@@ -501,6 +502,10 @@ class Membership extends Pivot
     protected \$table = '{$n['membersTable']}';
 
     protected \$fillable = ['{$n['singular']}_id', 'user_id', 'role'];
+
+    protected \$casts = [
+        'role' => {$n['studly']}Role::class,
+    ];
 }
 
 PHP;
@@ -564,6 +569,8 @@ PHP;
 
 namespace App\Concerns;
 
+use App\Enums\\{$n['studly']}Role;
+use App\Models\Membership;
 use App\Models\\{$n['studly']};
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -573,6 +580,7 @@ trait Has{$n['studlyPlural']}
     public function {$n['plural']}(): BelongsToMany
     {
         return \$this->belongsToMany({$n['studly']}::class, '{$n['membersTable']}')
+            ->using(Membership::class)
             ->withPivot('role')
             ->withTimestamps();
     }
@@ -601,7 +609,7 @@ trait Has{$n['studlyPlural']}
         return (int) \$this->{$n['currentColumn']} === (int) \$scope->getKey();
     }
 
-    public function {$n['camel']}Role({$n['studly']} \$scope): ?string
+    public function {$n['camel']}Role({$n['studly']} \$scope): ?{$n['studly']}Role
     {
         \$membership = \$this->{$n['plural']}()->whereKey(\$scope->getKey())->first()?->pivot;
 
@@ -634,8 +642,8 @@ class Ensure{$n['studly']}Membership
         abort_if(! \$user || ! \$scope || ! \$user->belongsTo{$n['studly']}(\$scope), 403);
 
         if (\$minimumRole !== null) {
-            \$role = {$n['studly']}Role::from(\$user->{$n['camel']}Role(\$scope));
-            abort_if(\$role->level() < {$n['studly']}Role::from(\$minimumRole)->level(), 403);
+            \$role = \$user->{$n['camel']}Role(\$scope);
+            abort_if(! \$role || \$role->level() < {$n['studly']}Role::from(\$minimumRole)->level(), 403);
         }
 
         if (\$request->route('{$n['currentRouteKey']}') && ! \$user->isCurrent{$n['studly']}(\$scope)) {
