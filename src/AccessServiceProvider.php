@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Gate;
 use Maxiviper117\Access\Commands\ClearAccessCommand;
 use Maxiviper117\Access\Commands\DebugAccessCommand;
 use Maxiviper117\Access\Commands\InstallAccessCommand;
+use Maxiviper117\Access\Commands\ScopeAccessCommand;
 use Maxiviper117\Access\Commands\SyncAccessCommand;
 use Maxiviper117\Access\Middleware\EnsureHasPermission;
 use Spatie\LaravelPackageTools\Package;
@@ -21,6 +22,7 @@ class AccessServiceProvider extends PackageServiceProvider
             ->hasMigration('create_access_table')
             ->hasCommands([
                 InstallAccessCommand::class,
+                ScopeAccessCommand::class,
                 SyncAccessCommand::class,
                 ClearAccessCommand::class,
                 DebugAccessCommand::class,

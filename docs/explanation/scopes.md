@@ -37,3 +37,22 @@ $user->in($company)->assignRole('Owner');
 ```
 
 It does not create a `company_user` row or invite the user into the company. Keep those concepts in your application models.
+
+## Optional Scope Scaffolding
+
+If you want Laravel Access to create that application-owned membership layer for you, run `access:scope`.
+
+```bash
+php artisan access:scope --name=company
+```
+
+The command scaffolds first-party app code: a `Company` model, membership and invitation tables, `HasCompanies`, `EnsureCompanyMembership`, role and permission enums, invitation routes, and current-company URL defaults. The generated code is still yours to edit.
+
+The authorization API does not change:
+
+```php
+$user->in($company)->assignRole('Admin');
+$user->in($company)->can(Permission::UsersInvite);
+```
+
+Read [Scaffold team scopes](/how-to/scaffold-team-scopes) for the full workflow.

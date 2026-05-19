@@ -7,6 +7,18 @@ return [
 
     'default_scope_model' => null,
 
+    'teams' => [
+        'model' => null,
+        'singular' => 'team',
+        'plural' => 'teams',
+    ],
+
+    'invitations' => [
+        'require_existing_user' => false,
+        'expiry_days' => 7,
+        'redirect_after_accept' => 'dashboard',
+    ],
+
     'cache' => [
         'enabled' => env('APP_ENV') !== 'testing',
         'key' => 'access.permissions',

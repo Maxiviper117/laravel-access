@@ -48,6 +48,8 @@ This documentation follows the Diátaxis structure:
 5. Check permissions inside policies.
 6. Share permission maps to Inertia only for UI decisions.
 
+For apps that need team, company, workspace, tenant, or organization membership scaffolding, start with [`access:scope`](/how-to/scaffold-team-scopes). It generates the app-owned scope models, membership tables, invitation flow, current scope column, route defaults, and middleware while keeping Laravel Access authorization explicit through `$user->in($scope)`.
+
 ## Quick Example
 
 ```php
