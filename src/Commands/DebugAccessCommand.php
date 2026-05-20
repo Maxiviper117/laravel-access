@@ -16,7 +16,7 @@ class DebugAccessCommand extends Command
 
     public function handle(): int
     {
-        $user = $this->findUser((string) $this->argument('user'));
+        $user = $this->findUser($this->argument('user'));
 
         if (! $user instanceof Model) {
             $this->error('User not found.');
@@ -44,8 +44,18 @@ class DebugAccessCommand extends Command
         return self::SUCCESS;
     }
 
-    private function findUser(string $value): ?Model
+    /** @param mixed $value */
+    private function findUser(mixed $value): ?Model
     {
+        if (is_array($value) || is_object($value)) {
+            return null;
+        }
+
+        if (! is_scalar($value) && ! is_null($value)) {
+            return null;
+        }
+
+        $value = (string) $value;
         $class = config('access.user_model');
 
         if (! is_string($class) || ! is_a($class, Model::class, true)) {
@@ -63,7 +73,7 @@ class DebugAccessCommand extends Command
     {
         $scope = $this->option('scope');
 
-        if (! $scope) {
+        if (! is_string($scope) || $scope === '') {
             return null;
         }
 
