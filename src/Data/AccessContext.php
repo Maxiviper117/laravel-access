@@ -35,7 +35,7 @@ class AccessContext
             'name' => $roleName,
             'label' => $label ?? str((string) $roleName)->headline(),
             'description' => $description,
-            'is_global' => $this->scope === null,
+            'is_global' => ! $this->scope instanceof Model,
             'is_system' => false,
             'scope_type' => $this->scope?->getMorphClass(),
             'scope_id' => $this->scope?->getKey(),
@@ -46,7 +46,7 @@ class AccessContext
     {
         $roleModel = $this->findRoleInstance($role);
 
-        if (! $roleModel) {
+        if (! $roleModel instanceof Role) {
             return false;
         }
 
@@ -65,7 +65,7 @@ class AccessContext
     {
         $roleModel = $this->findRoleInstance($role);
 
-        if (! $roleModel) {
+        if (! $roleModel instanceof Role) {
             throw new \InvalidArgumentException('Role not found.');
         }
 
@@ -88,7 +88,7 @@ class AccessContext
     {
         $roleModel = $this->findRoleInstance($role);
 
-        if (! $roleModel) {
+        if (! $roleModel instanceof Role) {
             throw new \InvalidArgumentException('Role not found.');
         }
 
@@ -109,7 +109,7 @@ class AccessContext
     {
         $roleModel = $this->findRoleInstance($role);
 
-        if (! $roleModel) {
+        if (! $roleModel instanceof Role) {
             throw new \InvalidArgumentException('Role not found.');
         }
 
@@ -133,9 +133,9 @@ class AccessContext
     {
         $query = Role::query();
 
-        if ($this->scope) {
+        if ($this->scope instanceof Model) {
             $scope = $this->scope;
-            $query->where(function ($q) use ($scope) {
+            $query->where(function ($q) use ($scope): void {
                 $q->where(fn ($sub) => $sub->where('scope_type', $scope->getMorphClass())->where('scope_id', $scope->getKey()))
                     ->orWhere(fn ($sub) => $sub->whereNull('scope_type')->whereNull('scope_id'));
             });
@@ -154,7 +154,7 @@ class AccessContext
 
         $roleName = $role instanceof BackedEnum ? $role->value : $role;
 
-        if ($this->scope) {
+        if ($this->scope instanceof Model) {
             $scopedRole = Role::query()
                 ->where('name', $roleName)
                 ->where('scope_type', $this->scope->getMorphClass())
@@ -204,13 +204,7 @@ class AccessContext
     /** @param array<BackedEnum|string|Role> $roles */
     public function hasAnyRole(array $roles): bool
     {
-        foreach ($roles as $role) {
-            if ($this->hasRole($role)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($roles, fn (\BackedEnum|string|Role $role): bool => $this->hasRole($role));
     }
 
     public function can(BackedEnum|string $permission): bool
@@ -297,7 +291,7 @@ class AccessContext
 
         $roleName = $role instanceof BackedEnum ? $role->value : $role;
 
-        if ($this->scope) {
+        if ($this->scope instanceof Model) {
             $scopedRole = Role::query()
                 ->where('name', $roleName)
                 ->where('scope_type', $this->scope->getMorphClass())
@@ -323,7 +317,7 @@ class AccessContext
             'name' => $roleName,
             'scope_type' => $this->scope?->getMorphClass(),
             'scope_id' => $this->scope?->getKey(),
-            'is_global' => $this->scope === null,
+            'is_global' => ! $this->scope instanceof Model,
             'is_system' => true,
         ]);
     }

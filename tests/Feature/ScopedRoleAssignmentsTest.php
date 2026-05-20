@@ -5,7 +5,7 @@ use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 use Maxiviper117\Access\Tests\Fixtures\User;
 
-it('assigns scoped roles and checks permissions without leaking scopes', function () {
+it('assigns scoped roles and checks permissions without leaking scopes', function (): void {
     Access::role('Owner')->allows([Permission::UsersInvite]);
 
     $user = User::query()->create(['email' => 'david@example.com']);

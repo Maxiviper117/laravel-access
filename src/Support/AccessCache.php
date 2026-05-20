@@ -70,7 +70,7 @@ class AccessCache
             $actor->getMorphClass(),
             (is_scalar($actor->getKey()) || is_null($actor->getKey()) ? (string) $actor->getKey() : ''),
             $scope?->getMorphClass() ?? 'global',
-            $scope !== null && (is_scalar($scope->getKey()) || is_null($scope->getKey())) ? (string) $scope->getKey() : 'global',
+            $scope instanceof Model && (is_scalar($scope->getKey()) || is_null($scope->getKey())) ? (string) $scope->getKey() : 'global',
         );
     }
 

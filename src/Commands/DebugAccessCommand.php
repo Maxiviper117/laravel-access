@@ -18,7 +18,7 @@ class DebugAccessCommand extends Command
     {
         $user = $this->findUser((string) $this->argument('user'));
 
-        if (! $user) {
+        if (! $user instanceof Model) {
             $this->error('User not found.');
 
             return self::FAILURE;
@@ -26,11 +26,11 @@ class DebugAccessCommand extends Command
 
         $scope = $this->scope();
         $context = app(Access::class)->for($user);
-        $context = $scope ? $context->in($scope) : $context;
+        $context = $scope instanceof Model ? $context->in($scope) : $context;
         $assignments = $this->assignments($user, $scope);
 
         $this->line('User: '.$this->label($user));
-        $scopeLabel = $scope ? class_basename($scope).' #'.(is_scalar($scope->getKey()) || is_null($scope->getKey()) ? (string) $scope->getKey() : '') : 'global';
+        $scopeLabel = $scope instanceof Model ? class_basename($scope).' #'.(is_scalar($scope->getKey()) || is_null($scope->getKey()) ? (string) $scope->getKey() : '') : 'global';
         $this->line('Scope: '.$scopeLabel);
         $this->newLine();
         $this->line('Roles:');
@@ -85,7 +85,7 @@ class DebugAccessCommand extends Command
             ->where('actor_id', $user->getKey())
             ->with('role');
 
-        $scope
+        $scope instanceof Model
             ? $query->where('scope_type', $scope->getMorphClass())->where('scope_id', $scope->getKey())
             : $query->whereNull('scope_type')->whereNull('scope_id');
 

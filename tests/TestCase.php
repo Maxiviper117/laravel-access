@@ -16,7 +16,7 @@ class TestCase extends Orchestra
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Maxiviper117\\Access\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName): string => 'Maxiviper117\\Access\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
     }
 
@@ -27,7 +27,7 @@ class TestCase extends Orchestra
         ];
     }
 
-    public function getEnvironmentSetUp($app)
+    public function getEnvironmentSetUp($app): void
     {
         config()->set('database.default', 'testing');
         config()->set('database.connections.testing', [
@@ -38,14 +38,14 @@ class TestCase extends Orchestra
         config()->set('access.user_model', User::class);
         config()->set('access.cache.enabled', false);
 
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('users', function (Blueprint $table): void {
             $table->id();
             $table->string('name')->nullable();
             $table->string('email')->unique();
             $table->timestamps();
         });
 
-        Schema::create('companies', function (Blueprint $table) {
+        Schema::create('companies', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
             $table->timestamps();

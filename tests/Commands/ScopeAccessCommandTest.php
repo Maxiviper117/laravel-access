@@ -46,7 +46,7 @@ function cleanScopeScaffold(): void
     }
 }
 
-it('scaffolds a renamed scope from the name option', function () {
+it('scaffolds a renamed scope from the name option', function (): void {
     $configPath = config_path('access.php');
     $enumPath = app_path('Enums/Permission.php');
     $bootstrapPath = base_path('bootstrap/app.php');
@@ -170,7 +170,7 @@ PHP);
     }
 });
 
-it('can scaffold invitation notification helpers', function () {
+it('can scaffold invitation notification helpers', function (): void {
     cleanScopeScaffold();
 
     try {
@@ -196,7 +196,7 @@ it('can scaffold invitation notification helpers', function () {
     }
 });
 
-it('can scaffold inertia react invitation pages', function () {
+it('can scaffold inertia react invitation pages', function (): void {
     cleanScopeScaffold();
 
     try {
@@ -208,7 +208,7 @@ it('can scaffold inertia react invitation pages', function () {
             ->and(resource_path('views/auth/company-invitation-error.blade.php'))->not->toBeFile()
             ->and(resource_path('views/auth/company-invited-register.blade.php'))->not->toBeFile();
 
-        expect(collect(File::directories(resource_path('js/Pages')))->map(fn (string $path) => basename($path))->all())
+        expect(collect(File::directories(resource_path('js/Pages')))->map(fn (string $path): string => basename($path))->all())
             ->toContain('auth');
 
         expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
@@ -226,7 +226,7 @@ it('can scaffold inertia react invitation pages', function () {
     }
 });
 
-it('keeps inertia generated page path casing aligned with render names', function () {
+it('keeps inertia generated page path casing aligned with render names', function (): void {
     cleanScopeScaffold();
 
     try {
@@ -236,7 +236,7 @@ it('keeps inertia generated page path casing aligned with render names', functio
         expect(resource_path('js/Pages/auth/CompanyInvitationError.vue'))->toBeFile()
             ->and(resource_path('js/Pages/auth/CompanyInvitedRegister.vue'))->toBeFile();
 
-        expect(collect(File::directories(resource_path('js/Pages')))->map(fn (string $path) => basename($path))->all())
+        expect(collect(File::directories(resource_path('js/Pages')))->map(fn (string $path): string => basename($path))->all())
             ->toContain('auth');
 
         expect(File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php')))
@@ -251,7 +251,7 @@ it('keeps inertia generated page path casing aligned with render names', functio
     }
 });
 
-it('uses inertia v3 svelte props syntax for svelte invitation pages', function () {
+it('uses inertia v3 svelte props syntax for svelte invitation pages', function (): void {
     cleanScopeScaffold();
 
     try {
@@ -275,7 +275,7 @@ it('uses inertia v3 svelte props syntax for svelte invitation pages', function (
     }
 });
 
-it('supports irregular plural overrides', function () {
+it('supports irregular plural overrides', function (): void {
     cleanScopeScaffold();
 
     try {
@@ -323,7 +323,7 @@ it('supports irregular plural overrides', function () {
     }
 });
 
-it('patches the User model with the HasScopePlural trait when no-concern is not passed', function () {
+it('patches the User model with the HasScopePlural trait when no-concern is not passed', function (): void {
     $userPath = app_path('Models/User.php');
     File::delete($userPath);
     cleanScopeScaffold();

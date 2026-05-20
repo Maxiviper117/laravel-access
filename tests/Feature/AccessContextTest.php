@@ -6,7 +6,7 @@ use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 use Maxiviper117\Access\Tests\Fixtures\User;
 
-it('supports cannot and hasPermission aliases', function () {
+it('supports cannot and hasPermission aliases', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -17,7 +17,7 @@ it('supports cannot and hasPermission aliases', function () {
         ->and($user->in($company)->cannot(Permission::RolesManage))->toBeTrue();
 });
 
-it('supports hasAnyRole checks', function () {
+it('supports hasAnyRole checks', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -27,7 +27,7 @@ it('supports hasAnyRole checks', function () {
         ->and($user->in($company)->hasAnyRole(['Admin', 'Viewer']))->toBeFalse();
 });
 
-it('can assign and check roles using Role models directly', function () {
+it('can assign and check roles using Role models directly', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -39,7 +39,7 @@ it('can assign and check roles using Role models directly', function () {
         ->and($user->in($company)->hasRole('Moderator'))->toBeTrue();
 });
 
-it('can revoke direct permissions', function () {
+it('can revoke direct permissions', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -51,12 +51,12 @@ it('can revoke direct permissions', function () {
     expect($user->in($company)->can(Permission::UsersInvite))->toBeFalse();
 
     // Revoking non-existent permission does not throw
-    expect(function () use ($user, $company) {
+    expect(function () use ($user, $company): void {
         $user->in($company)->revokePermission('non.existent.permission');
     })->not->toThrow(Exception::class);
 });
 
-it('can remove roles', function () {
+it('can remove roles', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -67,7 +67,7 @@ it('can remove roles', function () {
     expect($user->in($company)->hasRole('Editor'))->toBeFalse();
 });
 
-it('returns all unique permission names with permissions() method', function () {
+it('returns all unique permission names with permissions() method', function (): void {
     Access::role('Editor')->allows([Permission::UsersInvite, Permission::UsersView]);
     Access::role('Viewer')->allows([Permission::UsersView]);
 
@@ -85,7 +85,7 @@ it('returns all unique permission names with permissions() method', function () 
         ->and($permissions)->toContain('users.invite', 'users.view', 'roles.manage');
 });
 
-it('supports HasAccess global trait helpers for removal and direct permissions', function () {
+it('supports HasAccess global trait helpers for removal and direct permissions', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
 
     // Global direct permission

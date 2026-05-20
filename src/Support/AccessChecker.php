@@ -18,7 +18,7 @@ class AccessChecker
                 ->where('actor_id', $actor->getKey())
                 ->with(['permission', 'role.permissions']);
 
-            $scope
+            $scope instanceof Model
                 ? $query->where('scope_type', $scope->getMorphClass())->where('scope_id', $scope->getKey())
                 : $query->whereNull('scope_type')->whereNull('scope_id');
 

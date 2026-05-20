@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\File;
 
-it('publishes config and migrations when installing and inserts HasAccess trait into User model', function () {
+it('publishes config and migrations when installing and inserts HasAccess trait into User model', function (): void {
     $configPath = config_path('access.php');
     $enumPath = app_path('Enums/Permission.php');
     $userPath = app_path('Models/User.php');

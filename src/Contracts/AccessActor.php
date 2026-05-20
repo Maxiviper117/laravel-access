@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Maxiviper117\Access\Contracts;
 
 use Illuminate\Database\Eloquent\Model;

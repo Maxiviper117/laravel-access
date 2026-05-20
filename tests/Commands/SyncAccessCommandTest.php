@@ -5,7 +5,7 @@ use Maxiviper117\Access\Models\Role;
 use Maxiviper117\Access\Tests\Fixtures\CompanyPermission;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 
-it('syncs permissions and configured roles', function () {
+it('syncs permissions and configured roles', function (): void {
     config()->set('access.permission_enums', [Permission::class]);
     config()->set('access.roles', [
         'Owner' => [Permission::UsersView, Permission::UsersInvite, Permission::RolesManage],
@@ -22,7 +22,7 @@ it('syncs permissions and configured roles', function () {
         ->and(Role::query()->where('name', 'Platform Admin')->first()->is_global)->toBeTrue();
 });
 
-it('syncs permissions from multiple configured enums', function () {
+it('syncs permissions from multiple configured enums', function (): void {
     config()->set('access.permission_enums', [
         Permission::class,
         CompanyPermission::class,

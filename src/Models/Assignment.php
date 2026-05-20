@@ -45,6 +45,7 @@ class Assignment extends Model
         return $this->belongsTo(Permission::class);
     }
 
+    #[\Override]
     protected static function booted(): void
     {
         static::saved(fn (self $assignment) => app(AccessCache::class)->forgetForAssignment($assignment));

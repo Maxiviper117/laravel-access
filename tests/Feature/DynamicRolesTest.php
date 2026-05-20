@@ -11,7 +11,7 @@ use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 use Maxiviper117\Access\Tests\Fixtures\User;
 
-it('supports creating and resolving dynamic scoped roles', function () {
+it('supports creating and resolving dynamic scoped roles', function (): void {
     $user = User::query()->create(['email' => 'editor@example.com']);
     $companyA = Company::query()->create(['name' => 'Acme Inc']);
     $companyB = Company::query()->create(['name' => 'Beta LLC']);
@@ -53,7 +53,7 @@ it('supports creating and resolving dynamic scoped roles', function () {
         ->and($user->in($companyB)->can(Permission::UsersView))->toBeFalse();
 });
 
-it('does not prune dynamic roles when running access:sync with prune option', function () {
+it('does not prune dynamic roles when running access:sync with prune option', function (): void {
     // Ensure permissions exist
     PermissionModel::query()->firstOrCreate(['name' => 'users.view']);
 
@@ -93,7 +93,7 @@ it('does not prune dynamic roles when running access:sync with prune option', fu
         ->and(Role::query()->where('name', 'custom-admin')->exists())->toBeTrue();
 });
 
-it('supports scoped actions on dynamic roles via AccessContext', function () {
+it('supports scoped actions on dynamic roles via AccessContext', function (): void {
     $user = User::query()->create(['email' => 'admin@example.com']);
     $company = Company::query()->create(['name' => 'Acme Inc']);
 
@@ -144,7 +144,7 @@ it('supports scoped actions on dynamic roles via AccessContext', function () {
     expect($user->in($company)->can(Permission::UsersInvite))->toBeFalse();
 });
 
-it('protects system roles from deletion and modification', function () {
+it('protects system roles from deletion and modification', function (): void {
     $user = User::query()->create(['email' => 'admin@example.com']);
     $company = Company::query()->create(['name' => 'Acme Inc']);
 
@@ -161,12 +161,12 @@ it('protects system roles from deletion and modification', function () {
     expect(Role::query()->where('name', 'super-owner')->exists())->toBeTrue();
 
     // Attempting to modify a system role should throw exception
-    expect(function () use ($user, $company) {
+    expect(function () use ($user, $company): void {
         $user->in($company)->syncRolePermissions('super-owner', [Permission::UsersView]);
     })->toThrow(InvalidArgumentException::class, 'Cannot modify system roles.');
 });
 
-it('supports adding and removing permissions from dynamic roles via AccessContext', function () {
+it('supports adding and removing permissions from dynamic roles via AccessContext', function (): void {
     $user = User::query()->create(['email' => 'admin@example.com']);
     $company = Company::query()->create(['name' => 'Acme Inc']);
 
@@ -200,7 +200,7 @@ it('supports adding and removing permissions from dynamic roles via AccessContex
         ->and($user->in($company)->can(Permission::UsersInvite))->toBeTrue();
 });
 
-it('supports executing scaffolded dynamic role actions', function () {
+it('supports executing scaffolded dynamic role actions', function (): void {
     // Include the stubs dynamically
     include_once __DIR__.'/../../resources/stubs/CreateRole.stub';
     include_once __DIR__.'/../../resources/stubs/DeleteRole.stub';
@@ -265,7 +265,7 @@ enum TestRoleEnum: string
     case GlobalAdmin = 'test-global-admin';
 }
 
-it('supports using backed enums as role names', function () {
+it('supports using backed enums as role names', function (): void {
     $user = User::query()->create(['email' => 'enum-test@example.com']);
     $company = Company::query()->create(['name' => 'Acme Inc']);
 
@@ -292,7 +292,7 @@ it('supports using backed enums as role names', function () {
     expect($user->hasGlobalRole(TestRoleEnum::GlobalAdmin))->toBeFalse();
 });
 
-it('exercises all validation and exception edge cases for scaffolded role actions', function () {
+it('exercises all validation and exception edge cases for scaffolded role actions', function (): void {
     // Include the stubs dynamically if not already done
     include_once __DIR__.'/../../resources/stubs/CreateRole.stub';
     include_once __DIR__.'/../../resources/stubs/DeleteRole.stub';
