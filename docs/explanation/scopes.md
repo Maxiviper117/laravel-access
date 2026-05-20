@@ -54,6 +54,10 @@ The first line is membership. The second line is authorization.
 
 ## Optional Scope Scaffolding
 
+::: warning Laravel Starter Kit Team Support
+Do not use `access:scope` if you already enabled team support in the official Laravel starter kit (`laravel new --teams`). That starter kit generates its own membership, invitation, and scope-switching code. `access:scope` assumes a fresh app without those files and will conflict with or duplicate the starter kit's structure.
+:::
+
 If you want Laravel Access to create that application-owned membership layer for you, run `access:scope`.
 
 ```bash

@@ -11,6 +11,7 @@ Core ideas:
 - Permissions are enum-first and synced into the `access_*` tables.
 - `permission_enums` is the active config key. Do not reintroduce the old singular `permission_enum` model.
 - `access:scope` scaffolds app-owned membership/invitation/current-scope code. It should not make Laravel Access depend on hidden tenant state.
+- `access:seeder` generates an editable starter seeder for app membership plus scoped Laravel Access assignment.
 - `access:scope` generates a scope role enum, but normal permission cases belong in `App\Enums\Permission`. Modular permission enums are supported only by listing additional classes in `permission_enums`.
 
 ## Working Agreements
@@ -44,6 +45,7 @@ Focused alternatives:
 
 ```bash
 vendor/bin/pest tests/Commands/ScopeAccessCommandTest.php
+vendor/bin/pest tests/Commands/AccessSeederCommandTest.php
 vendor/bin/pest tests/Commands/SyncAccessCommandTest.php
 vendor/bin/pint --dirty
 ```
@@ -83,6 +85,15 @@ When editing `ScopeAccessCommand`:
   - Svelte: `@inertiajs/svelte` `<Form>` and `$props()`
 - Invitation Blade/Inertia pages should remain basic Tailwind starter UI.
 - Do not generate `<Scope>Permission` by default. Add starter scope permission cases to `App\Enums\Permission` when the file exists.
+
+## `access:seeder` Rules
+
+When editing `AccessSeederCommand`:
+
+- Preserve rename support for `team`, `company`, `workspace`, `tenant`, and irregular plural overrides.
+- Generate editable app seeders under `database/seeders`, not package seeders.
+- Keep app membership writes and Laravel Access role assignment as separate statements.
+- Do not make the generated seeder assign roles globally for scoped examples.
 
 ## Documentation Rules
 

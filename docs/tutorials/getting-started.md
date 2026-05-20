@@ -21,22 +21,11 @@ php artisan access:install --enum
 php artisan migrate
 ```
 
-`access:install --enum` publishes config and migrations, creates a starter enum at `app/Enums/Permission.php` when the file does not already exist, and adds it to `permission_enums` in `config/access.php`.
+`access:install --enum` publishes config and migrations, creates a starter enum at `app/Enums/Permission.php` when the file does not already exist, adds it to `permission_enums` in `config/access.php`, and automatically adds the `HasAccess` trait to your User model.
 
 The command also scaffolds five reusable Action classes under `app/Actions/Access/` for managing dynamic custom roles: `CreateRole`, `DeleteRole`, `SyncRolePermissions`, `AddPermissionToRole`, and `RemovePermissionFromRole`. These follow the standard Laravel Actions pattern and accept `BackedEnum`, `string`, or `Role` model instances for role identification.
 
-Add the trait to your user model:
-
-```php
-use Maxiviper117\Access\Concerns\HasAccess;
-
-class User extends Authenticatable
-{
-    use HasAccess;
-}
-```
-
-The trait adds the fluent `in($scope)` method for scoped usage and global role helpers for global-only usage.
+The `HasAccess` trait adds the fluent `in($scope)` method for scoped usage and global role helpers for global-only usage.
 
 ## Define Permissions
 
@@ -64,13 +53,73 @@ Permission names should describe abilities, not roles. Use `users.invite` instea
 
 Use this when your app has multiple organizations, teams, or tenants and a user's permissions differ depending on which one they're acting in.
 
+### Scaffold the Scope
+
+::: warning Laravel Starter Kit Team Support
+Do not use `access:scope` if you already enabled team support in the official Laravel starter kit (`laravel new --teams`). That starter kit generates its own membership, invitation, and scope-switching code. `access:scope` assumes a fresh app without those files and will conflict with or duplicate the starter kit's structure.
+:::
+
+Run `access:scope` to generate the membership layer, models, migrations, middleware, and invitation flows. Running the command without flags shows interactive prompts that guide you through scope naming, invitation UI stack, and notification setup:
+
+```bash
+php artisan access:scope
+php artisan migrate
+```
+
+Or skip prompts with flags:
+
+```bash
+php artisan access:scope --name=company
+php artisan migrate
+```
+
+Running the command interactively shows prompts for scope naming, invitation UI stack, and notification helpers:
+
+```
+php artisan access:scope
+
+ What should the group be called? [team]:
+ > company
+
+ Which invitation UI should be generated? [blade]:
+  [0] blade
+  [1] react
+  [2] vue
+  [3] svelte
+ > 3
+
+ Generate invitation email notification helpers? (yes/no) [yes]:
+ >
+
+Singular: company  |  Plural: companies  |  Table: companies
+
+ Confirm? (yes/no) [yes]:
+ >
+```
+
+This command creates:
+
+- **Migrations** for the scope table, membership pivot, invitations, and `current_scope_id` on users
+- **Models** (`Company`, `Membership`, `CompanyInvitation`)
+- **`HasCompanies` concern** added to your User model
+- **`CompanyRole` enum** with `Owner`/`Admin`/`Member` and hierarchy levels
+- **Middleware** (`EnsureCompanyMembership`) for route protection
+- **Invitation controller, routes, and views** (Blade or Inertia with `--frontend=react|vue|svelte`)
+- **Config patches** — sets `default_scope_model` and writes scope metadata in `config/access.php`
+- **Starter permissions** appended to `app/Enums/Permission.php` when the file exists
+
+Use `--notifications` to add mail notification support, or `--force` to overwrite existing files. See [Scaffold Team Scopes](/how-to/scaffold-team-scopes) for the full reference.
+
 ### Configure Roles
 
-Edit `config/access.php`. Lines with a red `-` are removed from the stub. Lines with a green `+` are what you write:
+::: warning Adapted for `access:scope` Scaffold
+The config examples below assume you used `access:scope` to generate your scope layer. If you are using the Laravel starter kit team support or a custom membership setup, adapt the `default_scope_model`, role definitions, and imports to match your own models and enums.
+:::
+
+Edit `config/access.php`. `access:scope` already set `default_scope_model` and scope metadata. Lines with a red `-` are removed from the stub. Lines with a green `+` are what you write:
 
 ```php
 use App\Enums\Permission;
-use App\Models\Company;
 
 return [
     'user_model' => 'App\\Models\\User',
@@ -78,8 +127,7 @@ return [
     'permission_enums' => [], // [!code --]
     'permission_enums' => [Permission::class], // [!code ++]
 
-    'default_scope_model' => null, // [!code --]
-    'default_scope_model' => Company::class, // [!code ++]
+    'default_scope_model' => \App\Models\Company::class,
 
     'cache' => [
         'enabled' => env('APP_ENV') !== 'testing',

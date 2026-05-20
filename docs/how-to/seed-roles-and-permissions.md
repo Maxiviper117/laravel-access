@@ -109,6 +109,12 @@ In scoped apps, `roles` are assigned inside a model such as a company, team, wor
 
 Seed both app membership and Laravel Access assignment when using the `access:scope` scaffold:
 
+```bash
+php artisan access:seeder --name=company --class=DemoCompanySeeder
+```
+
+That command generates an editable starter seeder. The core shape should stay the same:
+
 ```php
 namespace Database\Seeders;
 
