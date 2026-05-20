@@ -71,14 +71,18 @@ class ScopeAccessCommand extends Command
      */
     private function resolveNames(): array
     {
-        $base = Str::of($this->option('name') ?: $this->ask('What should the group be called?', 'team'))
+        $nameOption = $this->option('name');
+        $nameInput = is_string($nameOption) && $nameOption !== ''
+            ? $nameOption
+            : (is_string($askResult = $this->ask('What should the group be called?', 'team')) ? $askResult : 'team');
+        $base = Str::of($nameInput)
             ->trim()
             ->lower()
             ->snake()
             ->toString();
 
-        $singular = Str::of($this->option('singular') ?: $base)->trim()->lower()->snake()->toString();
-        $plural = Str::of($this->option('plural') ?: Str::plural($singular))->trim()->lower()->snake()->toString();
+        $singular = Str::of((string) ($this->option('singular') ?: $base))->trim()->lower()->snake()->toString();
+        $plural = Str::of((string) ($this->option('plural') ?: Str::plural($singular)))->trim()->lower()->snake()->toString();
         $frontend = $this->resolveFrontend();
         $interactive = ! $this->option('name');
         $notifications = (bool) $this->option('notifications');
@@ -118,7 +122,7 @@ class ScopeAccessCommand extends Command
             );
         }
 
-        $frontend = Str::of($frontend ?: 'blade')->trim()->lower()->toString();
+        $frontend = Str::of(is_string($frontend) && $frontend !== '' ? $frontend : 'blade')->trim()->lower()->toString();
 
         if (! in_array($frontend, ['blade', 'react', 'vue', 'svelte'], true)) {
             $this->warn("Unsupported frontend [{$frontend}], falling back to blade.");
@@ -141,7 +145,7 @@ class ScopeAccessCommand extends Command
 
     /**
      * @param  array<string, string|bool>  $names
-     * @return array<string, string|bool>
+     * @return array<string, string>
      */
     private function migrationFiles(array $names): array
     {
@@ -157,7 +161,7 @@ class ScopeAccessCommand extends Command
 
     /**
      * @param  array<string, string|bool>  $names
-     * @return array<string, string|bool>
+     * @return array<string, string>
      */
     private function appFiles(array $names): array
     {
@@ -184,7 +188,7 @@ class ScopeAccessCommand extends Command
 
     /**
      * @param  array<string, string|bool>  $names
-     * @return array<string, string|bool>
+     * @return array<string, string>
      */
     private function invitationUiFiles(array $names): array
     {
@@ -469,6 +473,7 @@ return new class extends Migration
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function membersMigration(array $n): string
     {
         return <<<PHP
@@ -501,6 +506,7 @@ return new class extends Migration
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function invitationsMigration(array $n): string
     {
         return <<<PHP
@@ -535,6 +541,7 @@ return new class extends Migration
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function currentScopeMigration(array $n): string
     {
         return <<<PHP
@@ -564,6 +571,7 @@ return new class extends Migration
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function scopeModel(array $n): string
     {
         return <<<PHP
@@ -620,6 +628,7 @@ class {$n['studly']} extends Model implements AccessScope
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function membershipModel(array $n): string
     {
         return <<<PHP
@@ -644,6 +653,7 @@ class Membership extends Pivot
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function invitationModel(array $n): string
     {
         return <<<PHP
@@ -713,6 +723,7 @@ class {$n['studly']}Invitation extends Model
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function concern(array $n): string
     {
         return <<<PHP
@@ -805,6 +816,7 @@ trait Has{$n['studlyPlural']}
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function middleware(array $n): string
     {
         return <<<PHP
@@ -850,6 +862,7 @@ class Ensure{$n['studly']}Membership
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function roleEnum(array $n): string
     {
         return <<<PHP
@@ -881,6 +894,10 @@ enum {$n['studly']}Role: string
 PHP;
     }
 
+    /**
+     * @param  array<string, string|bool>  $n
+     * @return array<int, string>
+     */
     private function permissionEnumCases(array $n): array
     {
         return [
@@ -891,6 +908,7 @@ PHP;
         ];
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function invitationController(array $n): string
     {
         $inertiaImports = $n['frontend'] !== 'blade'
@@ -1113,6 +1131,7 @@ PHP
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function renderInvitationErrorBody(array $n): string
     {
         if ($n['frontend'] !== 'blade') {
@@ -1136,6 +1155,7 @@ PHP;
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function invalidInvitationResponseBody(array $n): string
     {
         if ($n['frontend'] !== 'blade') {
@@ -1162,6 +1182,7 @@ PHP;
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function renderRegisterFormBody(array $n): string
     {
         if ($n['frontend'] !== 'blade') {
@@ -1181,6 +1202,7 @@ PHP;
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function invitationNotificationControllerMethods(array $n): string
     {
         return <<<PHP
@@ -1222,6 +1244,7 @@ PHP;
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function routes(array $n): string
     {
         $storeRoute = $n['notifications']
@@ -1242,6 +1265,7 @@ Route::post('invitations/{invitation:code}/register', [{$n['studly']}InvitationC
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function invitationNotification(array $n): string
     {
         return <<<PHP
@@ -1286,6 +1310,7 @@ class {$n['studly']}InvitationNotification extends Notification
 PHP;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function errorView(array $n): string
     {
         return <<<BLADE
@@ -1311,6 +1336,7 @@ PHP;
 BLADE;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function registerView(array $n): string
     {
         return <<<BLADE
@@ -1357,6 +1383,7 @@ BLADE;
 BLADE;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function reactErrorPage(array $n): string
     {
         return <<<TSX
@@ -1394,6 +1421,7 @@ export default function {$n['studly']}InvitationError({ message, invitation }: P
 TSX;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function reactRegisterPage(array $n): string
     {
         return <<<TSX
@@ -1458,6 +1486,7 @@ export default function {$n['studly']}InvitedRegister({ invitation }: Props) {
 TSX;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function vueErrorPage(array $n): string
     {
         return <<<VUE
@@ -1493,6 +1522,7 @@ defineProps<{
 VUE;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function vueRegisterPage(array $n): string
     {
         return <<<VUE
@@ -1553,6 +1583,7 @@ defineProps<{
 VUE;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function svelteErrorPage(array $n): string
     {
         return <<<SVELTE
@@ -1586,6 +1617,7 @@ let { message, invitation }: {
 SVELTE;
     }
 
+    /** @param  array<string, string|bool>  $n */
     private function svelteRegisterPage(array $n): string
     {
         return <<<SVELTE

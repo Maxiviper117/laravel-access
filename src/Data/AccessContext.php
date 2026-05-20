@@ -33,7 +33,7 @@ class AccessContext
 
         return Role::query()->create([
             'name' => $roleName,
-            'label' => $label ?? (string) str($roleName)->headline(),
+            'label' => $label ?? str((string) $roleName)->headline(),
             'description' => $description,
             'is_global' => $this->scope === null,
             'is_system' => false,
@@ -60,6 +60,7 @@ class AccessContext
         return true;
     }
 
+    /** @param array<BackedEnum|string> $permissions */
     public function syncRolePermissions(BackedEnum|string|Role $role, array $permissions): self
     {
         $roleModel = $this->findRoleInstance($role);
@@ -74,7 +75,7 @@ class AccessContext
 
         $ids = collect($permissions)
             ->map(fn (BackedEnum|string $permission): string => app(PermissionNormalizer::class)->normalize($permission))
-            ->map(fn (string $name): int => Permission::query()->firstOrCreate(['name' => $name])->getKey())
+            ->map(fn (string $name): int => (is_scalar(Permission::query()->firstOrCreate(['name' => $name])->getKey()) ? (int) Permission::query()->firstOrCreate(['name' => $name])->getKey() : 0))
             ->all();
 
         $roleModel->permissions()->sync($ids);
@@ -127,13 +128,15 @@ class AccessContext
         return $this;
     }
 
+    /** @return Collection<int, Role> */
     public function roles(): Collection
     {
         $query = Role::query();
 
         if ($this->scope) {
-            $query->where(function ($q) {
-                $q->where(fn ($sub) => $sub->where('scope_type', $this->scope->getMorphClass())->where('scope_id', $this->scope->getKey()))
+            $scope = $this->scope;
+            $query->where(function ($q) use ($scope) {
+                $q->where(fn ($sub) => $sub->where('scope_type', $scope->getMorphClass())->where('scope_id', $scope->getKey()))
                     ->orWhere(fn ($sub) => $sub->whereNull('scope_type')->whereNull('scope_id'));
             });
         } else {
@@ -198,6 +201,7 @@ class AccessContext
             ->exists();
     }
 
+    /** @param array<BackedEnum|string|Role> $roles */
     public function hasAnyRole(array $roles): bool
     {
         foreach ($roles as $role) {
@@ -249,6 +253,10 @@ class AccessContext
         return $this;
     }
 
+    /**
+     * @param  iterable<BackedEnum|string>  $permissions
+     * @return array<string, bool>
+     */
     public function toArray(iterable $permissions): array
     {
         $map = [];
@@ -261,11 +269,16 @@ class AccessContext
         return $map;
     }
 
+    /** @return array<int, string> */
     public function permissions(): array
     {
         return app(AccessChecker::class)->permissionsFor($this->actor, $this->scope);
     }
 
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
     private function assignmentAttributes(array $attributes): array
     {
         return array_merge([

@@ -21,21 +21,25 @@ class Assignment extends Model
 
     protected $guarded = [];
 
+    /** @return MorphTo<Model, $this> */
     public function actor(): MorphTo
     {
         return $this->morphTo();
     }
 
+    /** @return MorphTo<Model, $this> */
     public function scope(): MorphTo
     {
         return $this->morphTo();
     }
 
+    /** @return BelongsTo<Role, $this> */
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
     }
 
+    /** @return BelongsTo<Permission, $this> */
     public function permission(): BelongsTo
     {
         return $this->belongsTo(Permission::class);

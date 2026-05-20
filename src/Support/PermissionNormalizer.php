@@ -20,6 +20,10 @@ class PermissionNormalizer
         return $permission;
     }
 
+    /**
+     * @param  iterable<BackedEnum|string>  $permissions
+     * @return array<int, string>
+     */
     public function normalizeMany(iterable $permissions): array
     {
         $names = [];

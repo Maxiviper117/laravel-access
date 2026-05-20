@@ -22,10 +22,25 @@ class SyncAccessCommand extends Command
         $configuredRoles = array_keys($roleMap);
         $dryRun = (bool) $this->option('dry-run');
 
-        $missingPermissions = array_values(array_diff($permissionNames, Permission::query()->pluck('name')->all()));
-        $stalePermissions = array_values(array_diff(Permission::query()->pluck('name')->all(), $permissionNames));
+        $existingPermissionNames = array_map(
+            fn ($v): string => match (true) {
+                is_string($v) => $v,
+                is_scalar($v) || is_null($v) => (string) $v,
+                default => '',
+            },
+            Permission::query()->pluck('name')->all(),
+        );
+        $missingPermissions = array_values(array_diff($permissionNames, $existingPermissionNames));
+        $stalePermissions = array_values(array_diff($existingPermissionNames, $permissionNames));
         $systemRolesQuery = Role::query()->where('is_system', true)->whereNull('scope_type')->whereNull('scope_id');
-        $systemRolesInDb = $systemRolesQuery->pluck('name')->all();
+        $systemRolesInDb = array_map(
+            fn ($v): string => match (true) {
+                is_string($v) => $v,
+                is_scalar($v) || is_null($v) => (string) $v,
+                default => '',
+            },
+            $systemRolesQuery->pluck('name')->all(),
+        );
 
         $missingRoles = array_values(array_diff($configuredRoles, $systemRolesInDb));
         $staleRoles = array_values(array_diff($systemRolesInDb, $configuredRoles));
@@ -52,13 +67,13 @@ class SyncAccessCommand extends Command
 
             if ($role) {
                 $role->update([
-                    'is_global' => in_array($roleName, array_keys(config('access.global_roles', [])), true),
+                    'is_global' => in_array($roleName, array_keys((array) config('access.global_roles', [])), true),
                     'is_system' => true,
                 ]);
             } else {
                 $role = Role::query()->create([
                     'name' => $roleName,
-                    'is_global' => in_array($roleName, array_keys(config('access.global_roles', [])), true),
+                    'is_global' => in_array($roleName, array_keys((array) config('access.global_roles', [])), true),
                     'is_system' => true,
                 ]);
             }
@@ -83,10 +98,11 @@ class SyncAccessCommand extends Command
         return self::SUCCESS;
     }
 
+    /** @return array<int, string> */
     private function configuredPermissionNames(PermissionNormalizer $normalizer): array
     {
         $permissions = [];
-        foreach (config('access.permission_enums', []) as $enum) {
+        foreach ((array) config('access.permission_enums', []) as $enum) {
             if (! is_string($enum) || ! enum_exists($enum)) {
                 continue;
             }
@@ -105,17 +121,25 @@ class SyncAccessCommand extends Command
         return array_values(array_unique($permissions));
     }
 
+    /** @return array<string, array<int, string>> */
     private function configuredRoles(PermissionNormalizer $normalizer): array
     {
         $roles = [];
 
-        foreach (array_merge(config('access.roles', []), config('access.global_roles', [])) as $role => $permissions) {
-            $roles[$role] = $normalizer->normalizeMany($permissions);
+        foreach (array_merge((array) config('access.roles', []), (array) config('access.global_roles', [])) as $role => $permissions) {
+            $normalizedPerms = [];
+            foreach ((array) $permissions as $perm) {
+                if ($perm instanceof BackedEnum || is_string($perm)) {
+                    $normalizedPerms[] = $perm;
+                }
+            }
+            $roles[$role] = $normalizer->normalizeMany($normalizedPerms);
         }
 
         return $roles;
     }
 
+    /** @param array<int, string> $items */
     private function report(string $title, array $items): void
     {
         if ($items === []) {

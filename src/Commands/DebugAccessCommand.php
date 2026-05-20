@@ -3,6 +3,7 @@
 namespace Maxiviper117\Access\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Maxiviper117\Access\Access;
 use Maxiviper117\Access\Models\Assignment;
@@ -29,10 +30,12 @@ class DebugAccessCommand extends Command
         $assignments = $this->assignments($user, $scope);
 
         $this->line('User: '.$this->label($user));
-        $this->line('Scope: '.($scope ? class_basename($scope).' #'.$scope->getKey() : 'global'));
+        $scopeLabel = $scope ? class_basename($scope).' #'.(is_scalar($scope->getKey()) || is_null($scope->getKey()) ? (string) $scope->getKey() : '') : 'global';
+        $this->line('Scope: '.$scopeLabel);
         $this->newLine();
         $this->line('Roles:');
-        $assignments->pluck('role.name')->filter()->each(fn (string $role) => $this->line('- '.$role));
+        $roles = $assignments->pluck('role.name')->filter()->map(fn ($role): string => is_string($role) ? $role : '');
+        $roles->each(fn (string $role) => $this->line('- '.$role));
         $this->line($assignments->pluck('role.name')->filter()->isEmpty() ? '- none' : '');
         $this->newLine();
         $this->line('Permissions:');
@@ -44,6 +47,11 @@ class DebugAccessCommand extends Command
     private function findUser(string $value): ?Model
     {
         $class = config('access.user_model');
+
+        if (! is_string($class) || ! is_a($class, Model::class, true)) {
+            return null;
+        }
+
         $query = $class::query();
 
         return filter_var($value, FILTER_VALIDATE_EMAIL)
@@ -62,14 +70,15 @@ class DebugAccessCommand extends Command
         [, $id] = array_pad(explode(':', $scope, 2), 2, null);
         $class = config('access.default_scope_model');
 
-        if (! $class || ! $id) {
+        if (! is_string($class) || ! is_a($class, Model::class, true) || ! $id) {
             return null;
         }
 
         return $class::query()->find($id);
     }
 
-    private function assignments(Model $user, ?Model $scope)
+    /** @return Collection<int, Assignment> */
+    private function assignments(Model $user, ?Model $scope): Collection
     {
         $query = Assignment::query()
             ->where('actor_type', $user->getMorphClass())
