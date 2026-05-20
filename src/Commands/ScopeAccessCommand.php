@@ -849,7 +849,10 @@ class Ensure{$n['studly']}Membership
     {
         \$user = \$request->user();
         \$scope = \$request->route('{$n['currentRouteKey']}') ?: \$request->route('{$n['singular']}');
-
+        
+        // Verify the user is authenticated, a scope is bound, and they are a member
+        // of that scope. Manually changing the URL to a {$n['singular']} the user does
+        // not belong to results in a 403 here — before any controller logic runs.
         abort_if(! \$user || ! \$scope || ! \$user->belongsTo{$n['studly']}(\$scope), 403);
 
         if (\$minimumRole !== null) {
