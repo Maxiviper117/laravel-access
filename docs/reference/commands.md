@@ -85,6 +85,8 @@ php artisan access:seeder --name=company --class=DemoCompanySeeder
 php artisan access:seeder --name=company --force
 ```
 
+The command can be run with flags after `access:scope` has been set up correctly for the same scope name. It assumes the generated scope model, user relationship, role enum, and current-scope switch method already exist in the application.
+
 Options:
 
 `--name=`

@@ -853,10 +853,23 @@ class Ensure{$n['studly']}Membership
         abort_if(! \$user || ! \$scope || ! \$user->belongsTo{$n['studly']}(\$scope), 403);
 
         if (\$minimumRole !== null) {
+            // Fetch the user's app-level membership role (e.g. Owner, Admin, Member)
+            // from the pivot table and compare its level() against the minimum required.
+            // This is distinct from the Laravel Access scoped role assignment —
+            // it checks the app-owned memberships table, not the access_role_user table.
             \$role = \$user->{$n['camel']}Role(\$scope);
             abort_if(! \$role || \$role->level() < {$n['studly']}Role::from(\$minimumRole)->level(), 403);
         }
 
+        // When the route includes a current-scope parameter (e.g. {current_company}),
+        // automatically switch the user's active scope to the route-bound {$n['singular']}
+        // if it isn't already their current one. This keeps the user's session in sync
+        // with the {$n['singular']} they are actively viewing without requiring an explicit
+        // switchCompany() call in every controller.
+        //
+        // Safety: the `belongsTo{$n['studly']}` check above (line ~853) already ensures
+        // only actual members reach this point. Manually typing a URL for a {$n['singular']}
+        // the user does not belong to will result in a 403 before this switch runs.
         if (\$request->route('{$n['currentRouteKey']}') && ! \$user->isCurrent{$n['studly']}(\$scope)) {
             \$user->switch{$n['studly']}(\$scope);
         }
