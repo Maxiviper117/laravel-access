@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Maxiviper117/laravel-access/compare/v0.1.0...v0.1.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* add Rector and resolve PHPStan level 10 type errors ([#4](https://github.com/Maxiviper117/laravel-access/issues/4)) ([c1bb5f7](https://github.com/Maxiviper117/laravel-access/commit/c1bb5f788664259ac2c521cbb4d87abe13d9a57b))
+
 ## 0.1.0 (2026-05-20)
 
 
