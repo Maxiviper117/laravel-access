@@ -1,12 +1,12 @@
 # Laravel Access
 
-Laravel Access is a small permission package for Laravel apps with companies, teams, tenants, or workspaces.
+Explicit scoped authorization for Laravel — permission enums, polymorphic scopes, and zero implicit state.
 
-The package keeps one mental model: users get roles inside an explicit scope, roles contain permissions, and Laravel policies make the final authorization decision.
+Laravel Access gives you **explicit, scoped role-permission authorization** for multi-tenant Laravel applications. Unlike packages that assume one user = one set of permissions, Laravel Access is built for apps where users have **different roles in different scopes** — companies, teams, workspaces, or any Eloquent model.
+
+Permissions are **PHP BackedEnums** (not strings): compile-time safety, IDE autocomplete, single source of truth. The API makes scope **explicit at every call site** — `$user->in($company)->can(Permission::UsersInvite)` — no global state, no `team_id` hacks.
 
 ```php
-$user->in($company)->assignRole('Owner');
-
 $user->in($company)->can(Permission::UsersInvite);
 ```
 
