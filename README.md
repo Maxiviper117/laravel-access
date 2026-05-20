@@ -2,6 +2,8 @@
 
 Explicit scoped authorization for Laravel — permission enums, polymorphic scopes, and zero implicit state.
 
+> **[Documentation →](https://maxiviper117.github.io/laravel-access/)** — tutorials, how-to guides, reference, and explanation.
+
 Laravel Access gives you **explicit, scoped role-permission authorization** for multi-tenant Laravel applications. Unlike packages that assume one user = one set of permissions, Laravel Access is built for apps where users have **different roles in different scopes** — companies, teams, workspaces, or any Eloquent model.
 
 Permissions are **PHP BackedEnums** (not strings): compile-time safety, IDE autocomplete, single source of truth. The API makes scope **explicit at every call site** — `$user->in($company)->can(Permission::UsersInvite)` — no global state, no `team_id` hacks.
