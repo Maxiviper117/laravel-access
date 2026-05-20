@@ -44,7 +44,6 @@ class DebugAccessCommand extends Command
         return self::SUCCESS;
     }
 
-    /** @param mixed $value */
     private function findUser(mixed $value): ?Model
     {
         if (is_array($value) || is_object($value)) {
