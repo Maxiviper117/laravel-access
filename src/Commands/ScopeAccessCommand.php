@@ -81,8 +81,13 @@ class ScopeAccessCommand extends Command
             ->snake()
             ->toString();
 
-        $singular = Str::of((string) ($this->option('singular') ?: $base))->trim()->lower()->snake()->toString();
-        $plural = Str::of((string) ($this->option('plural') ?: Str::plural($singular)))->trim()->lower()->snake()->toString();
+        $singularOption = $this->option('singular');
+        $singularInput = is_string($singularOption) && $singularOption !== '' ? $singularOption : $base;
+        $singular = Str::of($singularInput)->trim()->lower()->snake()->toString();
+
+        $pluralOption = $this->option('plural');
+        $pluralInput = is_string($pluralOption) && $pluralOption !== '' ? $pluralOption : Str::plural($singular);
+        $plural = Str::of($pluralInput)->trim()->lower()->snake()->toString();
         $frontend = $this->resolveFrontend();
         $interactive = ! $this->option('name');
         $notifications = (bool) $this->option('notifications');
@@ -122,7 +127,8 @@ class ScopeAccessCommand extends Command
             );
         }
 
-        $frontend = Str::of(is_string($frontend) && $frontend !== '' ? $frontend : 'blade')->trim()->lower()->toString();
+        $frontendInput = is_string($frontend) && $frontend !== '' ? $frontend : 'blade';
+        $frontend = Str::of($frontendInput)->trim()->lower()->toString();
 
         if (! in_array($frontend, ['blade', 'react', 'vue', 'svelte'], true)) {
             $this->warn("Unsupported frontend [{$frontend}], falling back to blade.");

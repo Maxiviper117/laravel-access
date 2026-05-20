@@ -7,6 +7,9 @@ on:
       - 'phpstan.neon.dist'
       - '.github/workflows/phpstan.yml'
 
+permissions:
+  contents: read
+
 jobs:
   phpstan:
     name: phpstan
@@ -25,4 +28,4 @@ jobs:
         uses: ramsey/composer-install@v4
 
       - name: Run PHPStan
-        run: ./vendor/bin/phpstan --error-format=github
+        run: ./vendor/bin/phpstan analyse --memory-limit=512M --error-format=github
