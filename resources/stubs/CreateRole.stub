@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Actions\Access;
+
+use BackedEnum;
+use Illuminate\Database\Eloquent\Model;
+use Maxiviper117\Access\Models\Role;
+
+class CreateRole
+{
+    /**
+     * Run the action.
+     */
+    public static function run(BackedEnum|string $name, ?string $label = null, ?string $description = null, ?Model $scope = null): Role
+    {
+        return app(self::class)->handle($name, $label, $description, $scope);
+    }
+
+    /**
+     * Execute the action to create a dynamic or global role.
+     */
+    public function handle(BackedEnum|string $name, ?string $label = null, ?string $description = null, ?Model $scope = null): Role
+    {
+        $roleName = $name instanceof BackedEnum ? $name->value : $name;
+
+        return Role::create([
+            'name' => $roleName,
+            'label' => $label ?? (string) str($roleName)->headline(),
+            'description' => $description,
+            'is_global' => $scope === null,
+            'is_system' => false,
+            'scope_type' => $scope?->getMorphClass(),
+            'scope_id' => $scope?->getKey(),
+        ]);
+    }
+}

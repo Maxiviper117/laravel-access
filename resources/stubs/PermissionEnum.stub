@@ -1,0 +1,13 @@
+<?php
+
+namespace App\Enums;
+
+enum Permission: string
+{
+    case UsersView = 'users.view';
+    case UsersInvite = 'users.invite';
+    case UsersManage = 'users.manage';
+    case RolesManage = 'roles.manage';
+    case CompanyUpdate = 'company.update';
+    case SystemManage = 'system.manage';
+}

@@ -1,68 +1,107 @@
-# :package_description
+# Laravel Access
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-<!--delete-->
----
-This repo can be used to scaffold a Laravel package. Follow these steps to get started:
+Laravel Access is a small permission package for Laravel apps with companies, teams, tenants, or workspaces.
 
-1. Press the "Use this template" button at the top of this repo to create a new repo with the contents of this skeleton.
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files.
-3. Have fun creating your package.
-4. If you need help creating a package, consider picking up our <a href="https://laravelpackage.training">Laravel Package Training</a> video course.
----
-<!--/delete-->
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+The package keeps one mental model: users get roles inside an explicit scope, roles contain permissions, and Laravel policies make the final authorization decision.
 
-## Support us
+```php
+$user->in($company)->assignRole('Owner');
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/:package_name.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/:package_name)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+$user->in($company)->can(Permission::UsersInvite);
+```
 
 ## Installation
 
-You can install the package via composer:
-
 ```bash
-composer require :vendor_slug/:package_slug
-```
-
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag=":package_slug-migrations"
+composer require maxiviper117/laravel-access
+php artisan access:install --enum
 php artisan migrate
+php artisan access:sync
 ```
 
-You can publish the config file with:
-
-```bash
-php artisan vendor:publish --tag=":package_slug-config"
-```
-
-This is the contents of the published config file:
+Add the trait to your user model:
 
 ```php
+use Maxiviper117\Access\Concerns\HasAccess;
+
+class User extends Authenticatable
+{
+    use HasAccess;
+}
+```
+
+## Configuration
+
+Define your permission enum in `app/Enums/Permission.php`, then configure roles in `config/access.php`.
+
+```php
+use App\Enums\Permission;
+use App\Models\Company;
+
 return [
+    'permission_enum' => Permission::class,
+    'default_scope_model' => Company::class,
+
+    'roles' => [
+        'Owner' => [
+            Permission::UsersView,
+            Permission::UsersInvite,
+            Permission::UsersManage,
+            Permission::RolesManage,
+            Permission::CompanyUpdate,
+        ],
+    ],
 ];
 ```
 
-Optionally, you can publish the views using
+Sync the enum and configured roles into the database:
 
 ```bash
-php artisan vendor:publish --tag=":package_slug-views"
+php artisan access:sync
 ```
 
 ## Usage
 
+Assign scoped roles:
+
 ```php
-$:variable = new VendorName\Skeleton();
-echo $:variable->echoPhrase('Hello, VendorName!');
+$user->in($company)->assignRole('Owner');
+$user->in($company)->removeRole('Owner');
+```
+
+Check scoped permissions:
+
+```php
+$user->in($company)->can(Permission::UsersInvite);
+$user->in($company)->cannot(Permission::RolesManage);
+```
+
+Use it inside policies:
+
+```php
+public function inviteUsers(User $user, Company $company): bool
+{
+    return $user->in($company)->can(Permission::UsersInvite);
+}
+```
+
+Build an Inertia-friendly permission map:
+
+```php
+Access::for($user)->in($company)->toArray([
+    Permission::UsersInvite,
+    Permission::RolesManage,
+]);
+```
+
+## Commands
+
+```bash
+php artisan access:install --enum
+php artisan access:sync --dry-run
+php artisan access:sync --prune
+php artisan access:clear
+php artisan access:debug user@example.com --scope=company:1
 ```
 
 ## Testing
@@ -70,23 +109,6 @@ echo $:variable->echoPhrase('Hello, VendorName!');
 ```bash
 composer test
 ```
-
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
-
-## Credits
-
-- [:author_name](https://github.com/:author_username)
-- [All Contributors](../../contributors)
 
 ## License
 

@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Actions\Access;
+
+use BackedEnum;
+use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
+use Maxiviper117\Access\Models\Permission;
+use Maxiviper117\Access\Models\Role;
+use Maxiviper117\Access\Support\AccessCache;
+use Maxiviper117\Access\Support\PermissionNormalizer;
+
+class AddPermissionToRole
+{
+    /**
+     * Run the action.
+     */
+    public static function run(BackedEnum|string|Role $role, BackedEnum|string $permission, ?Model $scope = null): Role
+    {
+        return app(self::class)->handle($role, $permission, $scope);
+    }
+
+    /**
+     * Execute the action to add a single permission to a dynamic or global role.
+     */
+    public function handle(BackedEnum|string|Role $role, BackedEnum|string $permission, ?Model $scope = null): Role
+    {
+        $roleModel = $role instanceof Role ? $role : self::findRoleInstance($role, $scope);
+
+        if (! $roleModel) {
+            throw new InvalidArgumentException('Role not found.');
+        }
+
+        if ($roleModel->is_system) {
+            throw new InvalidArgumentException('System roles cannot be modified.');
+        }
+
+        if ($scope) {
+            if ($roleModel->scope_type !== $scope->getMorphClass() || (int) $roleModel->scope_id !== (int) $scope->getKey()) {
+                throw new InvalidArgumentException('The role does not belong to the given scope.');
+            }
+        } else {
+            if ($roleModel->scope_type !== null || $roleModel->scope_id !== null) {
+                throw new InvalidArgumentException('A scoped role cannot be modified without a scope.');
+            }
+        }
+
+        $normalized = app(PermissionNormalizer::class)->normalize($permission);
+        $permissionModel = Permission::query()->firstOrCreate(['name' => $normalized]);
+
+        $roleModel->permissions()->syncWithoutDetaching([$permissionModel->getKey()]);
+
+        app(AccessCache::class)->clear();
+
+        return $roleModel;
+    }
+
+    /**
+     * Resolve a Role instance from BackedEnum or string name.
+     */
+    protected static function findRoleInstance(BackedEnum|string $role, ?Model $scope = null): ?Role
+    {
+        $roleName = $role instanceof BackedEnum ? $role->value : $role;
+
+        if ($scope) {
+            $scopedRole = Role::query()
+                ->where('name', $roleName)
+                ->where('scope_type', $scope->getMorphClass())
+                ->where('scope_id', $scope->getKey())
+                ->first();
+
+            if ($scopedRole) {
+                return $scopedRole;
+            }
+        }
+
+        return Role::query()
+            ->where('name', $roleName)
+            ->whereNull('scope_type')
+            ->whereNull('scope_id')
+            ->first();
+    }
+}
