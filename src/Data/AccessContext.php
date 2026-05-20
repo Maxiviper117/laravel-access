@@ -33,9 +33,9 @@ class AccessContext
 
         return Role::query()->create([
             'name' => $roleName,
-            'label' => $label ?? (string) str($roleName)->headline(),
+            'label' => $label ?? str((string) $roleName)->headline(),
             'description' => $description,
-            'is_global' => $this->scope === null,
+            'is_global' => ! $this->scope instanceof Model,
             'is_system' => false,
             'scope_type' => $this->scope?->getMorphClass(),
             'scope_id' => $this->scope?->getKey(),
@@ -46,7 +46,7 @@ class AccessContext
     {
         $roleModel = $this->findRoleInstance($role);
 
-        if (! $roleModel) {
+        if (! $roleModel instanceof Role) {
             return false;
         }
 
@@ -60,11 +60,12 @@ class AccessContext
         return true;
     }
 
+    /** @param array<BackedEnum|string> $permissions */
     public function syncRolePermissions(BackedEnum|string|Role $role, array $permissions): self
     {
         $roleModel = $this->findRoleInstance($role);
 
-        if (! $roleModel) {
+        if (! $roleModel instanceof Role) {
             throw new \InvalidArgumentException('Role not found.');
         }
 
@@ -74,7 +75,7 @@ class AccessContext
 
         $ids = collect($permissions)
             ->map(fn (BackedEnum|string $permission): string => app(PermissionNormalizer::class)->normalize($permission))
-            ->map(fn (string $name): int => Permission::query()->firstOrCreate(['name' => $name])->getKey())
+            ->map(fn (string $name): int => (is_scalar(Permission::query()->firstOrCreate(['name' => $name])->getKey()) ? (int) Permission::query()->firstOrCreate(['name' => $name])->getKey() : 0))
             ->all();
 
         $roleModel->permissions()->sync($ids);
@@ -87,7 +88,7 @@ class AccessContext
     {
         $roleModel = $this->findRoleInstance($role);
 
-        if (! $roleModel) {
+        if (! $roleModel instanceof Role) {
             throw new \InvalidArgumentException('Role not found.');
         }
 
@@ -108,7 +109,7 @@ class AccessContext
     {
         $roleModel = $this->findRoleInstance($role);
 
-        if (! $roleModel) {
+        if (! $roleModel instanceof Role) {
             throw new \InvalidArgumentException('Role not found.');
         }
 
@@ -127,13 +128,15 @@ class AccessContext
         return $this;
     }
 
+    /** @return Collection<int, Role> */
     public function roles(): Collection
     {
         $query = Role::query();
 
-        if ($this->scope) {
-            $query->where(function ($q) {
-                $q->where(fn ($sub) => $sub->where('scope_type', $this->scope->getMorphClass())->where('scope_id', $this->scope->getKey()))
+        if ($this->scope instanceof Model) {
+            $scope = $this->scope;
+            $query->where(function ($q) use ($scope): void {
+                $q->where(fn ($sub) => $sub->where('scope_type', $scope->getMorphClass())->where('scope_id', $scope->getKey()))
                     ->orWhere(fn ($sub) => $sub->whereNull('scope_type')->whereNull('scope_id'));
             });
         } else {
@@ -151,7 +154,7 @@ class AccessContext
 
         $roleName = $role instanceof BackedEnum ? $role->value : $role;
 
-        if ($this->scope) {
+        if ($this->scope instanceof Model) {
             $scopedRole = Role::query()
                 ->where('name', $roleName)
                 ->where('scope_type', $this->scope->getMorphClass())
@@ -198,15 +201,10 @@ class AccessContext
             ->exists();
     }
 
+    /** @param array<BackedEnum|string|Role> $roles */
     public function hasAnyRole(array $roles): bool
     {
-        foreach ($roles as $role) {
-            if ($this->hasRole($role)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($roles, fn (\BackedEnum|string|Role $role): bool => $this->hasRole($role));
     }
 
     public function can(BackedEnum|string $permission): bool
@@ -249,6 +247,10 @@ class AccessContext
         return $this;
     }
 
+    /**
+     * @param  iterable<BackedEnum|string>  $permissions
+     * @return array<string, bool>
+     */
     public function toArray(iterable $permissions): array
     {
         $map = [];
@@ -261,11 +263,16 @@ class AccessContext
         return $map;
     }
 
+    /** @return array<int, string> */
     public function permissions(): array
     {
         return app(AccessChecker::class)->permissionsFor($this->actor, $this->scope);
     }
 
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
     private function assignmentAttributes(array $attributes): array
     {
         return array_merge([
@@ -284,7 +291,7 @@ class AccessContext
 
         $roleName = $role instanceof BackedEnum ? $role->value : $role;
 
-        if ($this->scope) {
+        if ($this->scope instanceof Model) {
             $scopedRole = Role::query()
                 ->where('name', $roleName)
                 ->where('scope_type', $this->scope->getMorphClass())
@@ -310,7 +317,7 @@ class AccessContext
             'name' => $roleName,
             'scope_type' => $this->scope?->getMorphClass(),
             'scope_id' => $this->scope?->getKey(),
-            'is_global' => $this->scope === null,
+            'is_global' => ! $this->scope instanceof Model,
             'is_system' => true,
         ]);
     }

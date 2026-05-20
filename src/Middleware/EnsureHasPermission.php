@@ -3,6 +3,7 @@
 namespace Maxiviper117\Access\Middleware;
 
 use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Maxiviper117\Access\Access;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,8 +15,14 @@ class EnsureHasPermission
         $user = $request->user();
         $scope = $scopeParameter ? $request->route($scopeParameter) : null;
 
-        abort_unless($user && $scope && app(Access::class)->for($user)->in($scope)->can($permission), 403);
+        abort_unless($user && $scope instanceof Model && app(Access::class)->for($user)->in($scope)->can($permission), 403);
 
-        return $next($request);
+        $response = $next($request);
+
+        if (! $response instanceof Response) {
+            abort(500);
+        }
+
+        return $response;
     }
 }

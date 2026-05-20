@@ -13,6 +13,7 @@ class RoleRegistrar
         private readonly bool $global = false,
     ) {}
 
+    /** @param array<BackedEnum|string> $permissions */
     public function allows(array $permissions): Role
     {
         $role = Role::query()
@@ -32,7 +33,7 @@ class RoleRegistrar
 
         $ids = collect($permissions)
             ->map(fn (BackedEnum|string $permission): string => app(PermissionNormalizer::class)->normalize($permission))
-            ->map(fn (string $name): int => Permission::query()->firstOrCreate(['name' => $name])->getKey())
+            ->map(fn (string $name): int => (is_scalar(Permission::query()->firstOrCreate(['name' => $name])->getKey()) ? (int) Permission::query()->firstOrCreate(['name' => $name])->getKey() : 0))
             ->all();
 
         $role->permissions()->sync($ids);

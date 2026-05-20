@@ -9,6 +9,7 @@ use Maxiviper117\Access\Models\Role;
 
 class AccessChecker
 {
+    /** @return array<int, string> */
     public function permissionsFor(Model $actor, ?Model $scope): array
     {
         return app(AccessCache::class)->remember($actor, $scope, function () use ($actor, $scope): array {
@@ -17,7 +18,7 @@ class AccessChecker
                 ->where('actor_id', $actor->getKey())
                 ->with(['permission', 'role.permissions']);
 
-            $scope
+            $scope instanceof Model
                 ? $query->where('scope_type', $scope->getMorphClass())->where('scope_id', $scope->getKey())
                 : $query->whereNull('scope_type')->whereNull('scope_id');
 
@@ -33,7 +34,7 @@ class AccessChecker
                 }
             }
 
-            return array_values(array_unique($permissions));
+            return array_values(array_unique(array_map(fn ($v): string => is_string($v) ? $v : (is_scalar($v) || is_null($v) ? (string) $v : ''), $permissions)));
         });
     }
 

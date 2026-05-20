@@ -25,6 +25,7 @@ class Role extends Model
         'is_system' => 'bool',
     ];
 
+    /** @return BelongsToMany<Permission, $this> */
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'access_role_permissions');

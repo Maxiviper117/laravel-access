@@ -10,6 +10,7 @@ use Maxiviper117\Access\Models\Assignment;
 
 trait HasAccess
 {
+    /** @return MorphMany<Assignment, $this> */
     public function accessAssignments(): MorphMany
     {
         return $this->morphMany(Assignment::class, 'actor');

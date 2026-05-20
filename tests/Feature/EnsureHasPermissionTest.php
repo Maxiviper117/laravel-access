@@ -7,23 +7,19 @@ use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 use Maxiviper117\Access\Tests\Fixtures\User;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Route::middleware([
         SubstituteBindings::class,
         EnsureHasPermission::class.':users.invite,company',
-    ])->get('/companies/{company}/invite', function (Company $company) {
-        return 'success';
-    });
+    ])->get('/companies/{company}/invite', fn (Company $company): string => 'success');
 
     Route::middleware([
         SubstituteBindings::class,
         EnsureHasPermission::class.':users.invite',
-    ])->get('/companies-no-scope/invite', function () {
-        return 'success';
-    });
+    ])->get('/companies-no-scope/invite', fn (): string => 'success');
 });
 
-it('allows request when user has permission in scope', function () {
+it('allows request when user has permission in scope', function (): void {
     $user = User::query()->create(['email' => 'test@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -35,14 +31,14 @@ it('allows request when user has permission in scope', function () {
         ->assertSee('success');
 });
 
-it('aborts 403 when user is not authenticated', function () {
+it('aborts 403 when user is not authenticated', function (): void {
     $company = Company::query()->create(['name' => 'Acme']);
 
     $this->get("/companies/{$company->id}/invite")
         ->assertStatus(403);
 });
 
-it('aborts 403 when user does not have permission in scope', function () {
+it('aborts 403 when user does not have permission in scope', function (): void {
     $user = User::query()->create(['email' => 'test@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -52,7 +48,7 @@ it('aborts 403 when user does not have permission in scope', function () {
         ->assertStatus(403);
 });
 
-it('aborts 403 when scope parameter is null or missing', function () {
+it('aborts 403 when scope parameter is null or missing', function (): void {
     $user = User::query()->create(['email' => 'test@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 

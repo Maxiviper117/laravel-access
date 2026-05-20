@@ -37,7 +37,7 @@ class AccessServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        $this->app['router']->aliasMiddleware('access', EnsureHasPermission::class);
+        $this->app->make('router')->aliasMiddleware('access', EnsureHasPermission::class);
 
         if (config('access.gate_before.enabled')) {
             Gate::before(function (object $user): ?bool {

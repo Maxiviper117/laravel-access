@@ -8,13 +8,24 @@ use Maxiviper117\Access\Models\Assignment;
 
 class AccessCache
 {
+    /** @return array<int, string> */
     public function remember(Model $actor, ?Model $scope, callable $callback): array
     {
         if (! config('access.cache.enabled')) {
-            return $callback();
+            $result = $callback();
+
+            return is_array($result) ? array_values(array_map(fn ($v): string => is_string($v) ? $v : (is_scalar($v) || is_null($v) ? (string) $v : ''), $result)) : [];
         }
 
-        return Cache::remember($this->key($actor, $scope), config('access.cache.ttl'), $callback);
+        $ttl = config('access.cache.ttl');
+
+        if (! is_int($ttl)) {
+            $ttl = null;
+        }
+
+        $result = Cache::remember($this->key($actor, $scope), $ttl, fn (): mixed => $callback());
+
+        return is_array($result) ? array_values(array_map(fn ($v): string => is_string($v) ? $v : (is_scalar($v) || is_null($v) ? (string) $v : ''), $result)) : [];
     }
 
     public function forget(Model $actor, ?Model $scope = null): void
@@ -46,9 +57,9 @@ class AccessCache
             $this->baseKey(),
             $this->version(),
             $assignment->actor_type,
-            $assignment->actor_id,
+            (string) $assignment->actor_id,
             $assignment->scope_type ?? 'global',
-            $assignment->scope_id ?? 'global',
+            (string) ($assignment->scope_id ?? 'global'),
         ));
     }
 
@@ -59,15 +70,15 @@ class AccessCache
             $this->baseKey(),
             $this->version(),
             $actor->getMorphClass(),
-            $actor->getKey(),
+            (is_scalar($actor->getKey()) || is_null($actor->getKey()) ? (string) $actor->getKey() : ''),
             $scope?->getMorphClass() ?? 'global',
-            $scope?->getKey() ?? 'global',
+            $scope instanceof Model && (is_scalar($scope->getKey()) || is_null($scope->getKey())) ? (string) $scope->getKey() : 'global',
         );
     }
 
     private function baseKey(): string
     {
-        return config('access.cache.key', 'access.permissions');
+        return is_string(config('access.cache.key')) ? config('access.cache.key') : 'access.permissions';
     }
 
     private function versionKey(): string
@@ -77,6 +88,8 @@ class AccessCache
 
     private function version(): int
     {
-        return (int) Cache::get($this->versionKey(), 1);
+        $version = Cache::get($this->versionKey(), 1);
+
+        return is_int($version) ? $version : (is_numeric($version) ? (int) $version : 1);
     }
 }

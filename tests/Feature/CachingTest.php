@@ -7,14 +7,14 @@ use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 use Maxiviper117\Access\Tests\Fixtures\User;
 
-beforeEach(function () {
+beforeEach(function (): void {
     config()->set('cache.default', 'array');
     config()->set('access.cache.enabled', true);
     config()->set('access.cache.ttl', 3600);
     app(AccessCache::class)->clear();
 });
 
-it('caches permission checks on subsequent calls', function () {
+it('caches permission checks on subsequent calls', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -25,7 +25,7 @@ it('caches permission checks on subsequent calls', function () {
 
     // Listen to query counts
     $queries = 0;
-    DB::listen(function () use (&$queries) {
+    DB::listen(function () use (&$queries): void {
         $queries++;
     });
 
@@ -34,7 +34,7 @@ it('caches permission checks on subsequent calls', function () {
     expect($queries)->toBe(0);
 });
 
-it('invalidates cache when a permission is given or revoked', function () {
+it('invalidates cache when a permission is given or revoked', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -48,7 +48,7 @@ it('invalidates cache when a permission is given or revoked', function () {
 
     // Listen to query counts
     $queries = 0;
-    DB::listen(function () use (&$queries) {
+    DB::listen(function () use (&$queries): void {
         $queries++;
     });
 
@@ -67,7 +67,7 @@ it('invalidates cache when a permission is given or revoked', function () {
     expect($queries)->toBeGreaterThan(0);
 });
 
-it('invalidates cache when a role is assigned or removed', function () {
+it('invalidates cache when a role is assigned or removed', function (): void {
     Access::role('Editor')->allows([Permission::UsersInvite]);
 
     $user = User::query()->create(['email' => 'david@example.com']);
@@ -83,7 +83,7 @@ it('invalidates cache when a role is assigned or removed', function () {
 
     // Listen to query counts
     $queries = 0;
-    DB::listen(function () use (&$queries) {
+    DB::listen(function () use (&$queries): void {
         $queries++;
     });
 
@@ -91,7 +91,7 @@ it('invalidates cache when a role is assigned or removed', function () {
     expect($queries)->toBeGreaterThan(0);
 });
 
-it('clears versioned cache when cache clear is executed', function () {
+it('clears versioned cache when cache clear is executed', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
 
@@ -105,7 +105,7 @@ it('clears versioned cache when cache clear is executed', function () {
 
     // Listen to queries
     $queries = 0;
-    DB::listen(function () use (&$queries) {
+    DB::listen(function () use (&$queries): void {
         $queries++;
     });
 
