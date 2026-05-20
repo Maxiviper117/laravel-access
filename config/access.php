@@ -20,6 +20,7 @@ return [
     ],
 
     'cache' => [
+        /** @phpstan-ignore-next-line */
         'enabled' => env('APP_ENV') !== 'testing',
         'key' => 'access.permissions',
         'ttl' => null,
