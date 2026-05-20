@@ -94,6 +94,10 @@ class DebugAccessCommand extends Command
 
     private function label(Model $user): string
     {
-        return trim(($user->name ?? class_basename($user)).' <'.($user->email ?? $user->getKey()).'>');
+        $name = $user->getAttribute('name');
+        $email = $user->getAttribute('email');
+        $key = $user->getKey();
+
+        return trim((is_string($name) ? $name : class_basename($user)).' <'.(is_string($email) ? $email : (is_scalar($key) || is_null($key) ? (string) $key : '')).'>');
     }
 }

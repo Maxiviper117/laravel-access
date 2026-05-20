@@ -12,7 +12,9 @@ class AccessCache
     public function remember(Model $actor, ?Model $scope, callable $callback): array
     {
         if (! config('access.cache.enabled')) {
-            return $callback();
+            $result = $callback();
+
+            return is_array($result) ? array_values(array_map(fn ($v): string => is_string($v) ? $v : (is_scalar($v) || is_null($v) ? (string) $v : ''), $result)) : [];
         }
 
         $ttl = config('access.cache.ttl');
@@ -23,7 +25,7 @@ class AccessCache
 
         $result = Cache::remember($this->key($actor, $scope), $ttl, fn (): mixed => $callback());
 
-        return is_array($result) ? array_map(fn ($v): string => is_string($v) ? $v : (is_scalar($v) || is_null($v) ? (string) $v : ''), $result) : [];
+        return is_array($result) ? array_values(array_map(fn ($v): string => is_string($v) ? $v : (is_scalar($v) || is_null($v) ? (string) $v : ''), $result)) : [];
     }
 
     public function forget(Model $actor, ?Model $scope = null): void

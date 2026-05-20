@@ -22,7 +22,15 @@ class Access
 
     public function defineScopedGates(string $permissionEnum, string $scopeClass): void
     {
+        if (! enum_exists($permissionEnum)) {
+            return;
+        }
+
         foreach ($permissionEnum::cases() as $permission) {
+            if (! $permission instanceof \BackedEnum || ! is_string($permission->value)) {
+                continue;
+            }
+
             Gate::define($permission->value, fn (Model $user, Model $scope): bool => $scope instanceof $scopeClass
                 && $this->for($user)->in($scope)->can($permission));
         }

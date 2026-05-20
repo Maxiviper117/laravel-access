@@ -129,6 +129,10 @@ class SyncAccessCommand extends Command
         $roles = [];
 
         foreach (array_merge((array) config('access.roles', []), (array) config('access.global_roles', [])) as $role => $permissions) {
+            if (! is_string($role)) {
+                continue;
+            }
+
             $normalizedPerms = [];
             foreach ((array) $permissions as $perm) {
                 if ($perm instanceof BackedEnum || is_string($perm)) {

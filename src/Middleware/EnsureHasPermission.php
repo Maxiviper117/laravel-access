@@ -17,6 +17,12 @@ class EnsureHasPermission
 
         abort_unless($user && $scope instanceof Model && app(Access::class)->for($user)->in($scope)->can($permission), 403);
 
-        return $next($request);
+        $response = $next($request);
+
+        if (! $response instanceof Response) {
+            abort(500);
+        }
+
+        return $response;
     }
 }
