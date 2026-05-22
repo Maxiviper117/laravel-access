@@ -47,7 +47,7 @@ class AccessSeederCommand extends Command
         $nameOption = $this->option('name');
         $nameInput = is_string($nameOption) && $nameOption !== ''
             ? $nameOption
-            : (string) config('access.teams.singular', 'team');
+            : (is_string($config = config('access.teams.singular')) ? $config : 'team');
         $base = Str::of($nameInput)
             ->trim()
             ->lower()
