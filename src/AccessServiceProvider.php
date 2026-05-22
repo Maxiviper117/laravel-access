@@ -3,6 +3,7 @@
 namespace Maxiviper117\Access;
 
 use Illuminate\Support\Facades\Gate;
+use Maxiviper117\Access\Commands\AccessSeederCommand;
 use Maxiviper117\Access\Commands\ClearAccessCommand;
 use Maxiviper117\Access\Commands\DebugAccessCommand;
 use Maxiviper117\Access\Commands\InstallAccessCommand;
@@ -23,6 +24,7 @@ class AccessServiceProvider extends PackageServiceProvider
             ->hasCommands([
                 InstallAccessCommand::class,
                 ScopeAccessCommand::class,
+                AccessSeederCommand::class,
                 SyncAccessCommand::class,
                 ClearAccessCommand::class,
                 DebugAccessCommand::class,

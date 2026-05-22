@@ -33,9 +33,34 @@ A project management SaaS where:
 composer require maxiviper117/laravel-access
 php artisan access:install --enum
 php artisan access:scope --name=company
+php artisan migrate
 ```
 
-For an Inertia app, choose the matching generated invitation pages:
+Running `access:scope` without flags shows interactive prompts that guide you through scope naming, invitation UI stack, notification helpers, and a confirmation summary before generating files:
+
+```
+php artisan access:scope
+
+ What should the group be called? [team]:
+ > company
+
+ Which invitation UI should be generated? [blade]:
+  [0] blade
+  [1] react
+  [2] vue
+  [3] svelte
+ > 3
+
+ Generate invitation email notification helpers? (yes/no) [yes]:
+ >
+
+Singular: company  |  Plural: companies  |  Table: companies
+
+ Confirm? (yes/no) [yes]:
+ >
+```
+
+For non-interactive setup, pass flags directly:
 
 ```bash
 php artisan access:scope --name=company --frontend=react

@@ -29,6 +29,10 @@ These classes accept `BackedEnum`, `string`, or `Role` model instances as role i
 
 ## `access:scope`
 
+::: warning Laravel Starter Kit Team Support
+Do not use `access:scope` if you already enabled team support in the official Laravel starter kit (`laravel new --teams`). That starter kit generates its own membership, invitation, and scope-switching code. `access:scope` assumes a fresh app without those files and will conflict with or duplicate the starter kit's structure.
+:::
+
 Scaffolds app-owned team/group support. The group name can be renamed to match your domain.
 
 ```bash
@@ -69,6 +73,38 @@ Options:
 Generated files include renamed migrations, models, a membership pivot model, invitation model and controller, `HasXxx` concern, `EnsureXxxMembership` middleware, a role enum, invitation routes, invite registration views or Inertia pages, config updates, middleware alias registration, URL defaults, and starter scope permission cases appended to `app/Enums/Permission.php` when that file exists.
 
 See [Scaffold team scopes](/how-to/scaffold-team-scopes) for the full generated architecture.
+
+## `access:seeder`
+
+Generates an editable starter seeder for scoped membership plus Laravel Access role assignment.
+
+```bash
+php artisan access:seeder --name=company
+php artisan access:seeder --name=alumnus --plural=alumni
+php artisan access:seeder --name=company --class=DemoCompanySeeder
+php artisan access:seeder --name=company --force
+```
+
+The command can be run with flags after `access:scope` has been set up correctly for the same scope name. It assumes the generated scope model, user relationship, role enum, and current-scope switch method already exist in the application.
+
+Options:
+
+`--name=`
+: Scope name to use. Defaults to `access.teams.singular`.
+
+`--singular=`
+: Overrides the singular form.
+
+`--plural=`
+: Overrides the plural form.
+
+`--class=`
+: Overrides the generated seeder class name. Defaults to `<Scope>AccessSeeder`.
+
+`--force`
+: Overwrites an existing seeder.
+
+The generated seeder is intentionally a starting point. It creates a demo owner and scope, writes the app-owned membership pivot, assigns the scoped Laravel Access role with `$user->in($scope)->assignRole(...)`, and switches the user's current scope. Run `access:sync` before running assignment seeders so configured roles exist in the database.
 
 ## `access:sync`
 
