@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2](https://github.com/Maxiviper117/laravel-access/compare/v0.1.1...v0.1.2) (2026-05-25)
+
+
+### Features
+
+* add access:seeder command and document scope starter kit support ([#6](https://github.com/Maxiviper117/laravel-access/issues/6)) ([f443172](https://github.com/Maxiviper117/laravel-access/commit/f4431722397cd3d40ea0ab903d2f669e2521cc08))
+
+
+### Bug Fixes
+
+* Harden AccessContext role handling and update docs ([#13](https://github.com/Maxiviper117/laravel-access/issues/13)) ([7d8d96c](https://github.com/Maxiviper117/laravel-access/commit/7d8d96c14347dae5360dbce07657c521b4c33fd2))
+
 ## [0.1.1](https://github.com/Maxiviper117/laravel-access/compare/v0.1.0...v0.1.1) (2026-05-20)
 
 
