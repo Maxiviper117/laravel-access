@@ -39,6 +39,34 @@ it('can assign and check roles using Role models directly', function (): void {
         ->and($user->in($company)->hasRole('Moderator'))->toBeTrue();
 });
 
+it('does not create a role when checking an unknown role name', function (): void {
+    $user = User::query()->create(['email' => 'david@example.com']);
+    $company = Company::query()->create(['name' => 'Acme']);
+
+    $before = Role::query()->count();
+
+    expect($user->in($company)->hasRole('phantom-role'))->toBeFalse();
+    expect(Role::query()->count())->toBe($before);
+});
+
+it('rejects role models that do not belong to the current scope', function (): void {
+    $user = User::query()->create(['email' => 'david@example.com']);
+    $companyA = Company::query()->create(['name' => 'Acme']);
+    $companyB = Company::query()->create(['name' => 'Beta']);
+
+    $role = Role::query()->create([
+        'name' => 'Scoped Manager',
+        'scope_type' => $companyA->getMorphClass(),
+        'scope_id' => $companyA->getKey(),
+        'is_system' => false,
+    ]);
+
+    expect($user->in($companyB)->hasRole($role))->toBeFalse();
+
+    expect(fn (): bool => $user->in($companyB)->assignRole($role))
+        ->toThrow(\InvalidArgumentException::class, 'The role does not belong to the current scope.');
+});
+
 it('can revoke direct permissions', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);

@@ -91,6 +91,29 @@ it('invalidates cache when a role is assigned or removed', function (): void {
     expect($queries)->toBeGreaterThan(0);
 });
 
+it('invalidates cached permissions for all users when a role changes permissions', function (): void {
+    $userA = User::query()->create(['email' => 'alpha@example.com']);
+    $userB = User::query()->create(['email' => 'beta@example.com']);
+    $company = Company::query()->create(['name' => 'Acme']);
+
+    $userA->in($company)->createRole('Editor');
+    $userA->in($company)->syncRolePermissions('Editor', [Permission::UsersInvite]);
+    $userA->in($company)->assignRole('Editor');
+    $userB->in($company)->assignRole('Editor');
+
+    expect($userB->in($company)->can(Permission::UsersInvite))->toBeTrue();
+
+    $userA->in($company)->addPermissionToRole('Editor', Permission::RolesManage);
+
+    $queries = 0;
+    DB::listen(function () use (&$queries): void {
+        $queries++;
+    });
+
+    expect($userB->in($company)->can(Permission::RolesManage))->toBeTrue();
+    expect($queries)->toBeGreaterThan(0);
+});
+
 it('clears versioned cache when cache clear is executed', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
