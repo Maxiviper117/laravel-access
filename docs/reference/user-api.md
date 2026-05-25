@@ -50,7 +50,7 @@ All scoped checks and assignments are made through that context.
 : Removes a role assignment from the current scope.
 
 `hasRole(BackedEnum|string|Role $role)`
-: Checks whether the actor has a role in the current scope.
+: Checks whether the actor has an existing role assignment in the current scope. Passing a `Role` model requires that the model already belongs to the active scope.
 
 `hasAnyRole(array $roles)`
 : Checks whether any listed role is assigned in the current scope. The array can contain `BackedEnum`, `string`, or `Role` instances.
