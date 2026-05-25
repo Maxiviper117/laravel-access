@@ -64,7 +64,7 @@ it('rejects role models that do not belong to the current scope', function (): v
     expect($user->in($companyB)->hasRole($role))->toBeFalse();
 
     expect(fn (): bool => $user->in($companyB)->assignRole($role))
-        ->toThrow(\InvalidArgumentException::class, 'The role does not belong to the current scope.');
+        ->toThrow(InvalidArgumentException::class, 'The role does not belong to the current scope.');
 });
 
 it('can revoke direct permissions', function (): void {
