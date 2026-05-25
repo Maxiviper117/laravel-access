@@ -80,7 +80,7 @@ class AccessContext
     /**
      * Replace all permissions assigned to a role.
      *
-     * @param array<BackedEnum|string> $permissions
+     * @param  array<BackedEnum|string>  $permissions
      */
     public function syncRolePermissions(BackedEnum|string|Role $role, array $permissions): self
     {
@@ -267,7 +267,7 @@ class AccessContext
     /**
      * Check whether the actor has any role from the provided list.
      *
-     * @param array<BackedEnum|string|Role> $roles
+     * @param  array<BackedEnum|string|Role>  $roles
      */
     public function hasAnyRole(array $roles): bool
     {
