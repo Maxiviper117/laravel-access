@@ -236,7 +236,7 @@ These classes follow the **Single Responsibility Principle (SRP)**, encapsulatin
 
 > [!TIP]
 > **Native Backed Enum & String Support**
-> Just like the core `AccessContext` APIs, all scaffolded Action stubs natively support passing a `BackedEnum`, `string`, or Eloquent `Role` instance as the role identifier! The actions will automatically resolve the correct database role record in the scope.
+> Just like the core `AccessContext` APIs, all scaffolded Action stubs natively support passing a `BackedEnum`, `string`, or Eloquent `Role` instance as the role identifier. The actions resolve the correct database role record for the active scope and require any `Role` model instance to already belong to that scope.
 
 ### Using the Actions
 
