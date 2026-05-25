@@ -6,7 +6,7 @@ title: Middleware
 
 The service provider registers the `access` middleware alias.
 
-```php
+```php:line-numbers
 Route::post('/companies/{company}/users/invite', InviteUserController::class)
     ->middleware('access:users.invite,company');
 ```
@@ -17,20 +17,20 @@ Policies are still recommended for object-specific authorization. Middleware is 
 
 ## Signature
 
-```text
+```text:line-numbers
 access:{permission},{routeParameter}
 ```
 
 Examples:
 
-```php
+```php:line-numbers
 ->middleware('access:roles.manage,company')
 ->middleware('access:projects.update,project')
 ```
 
 The route parameter must resolve to an Eloquent model:
 
-```php
+```php:line-numbers
 Route::patch('/companies/{company}', UpdateCompanyController::class)
     ->middleware('access:company.update,company');
 ```

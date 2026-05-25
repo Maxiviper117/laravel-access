@@ -6,7 +6,7 @@ title: Scopes
 
 Scoped checks make the target object visible in the code.
 
-```php
+```php:line-numbers
 $user->in($company)->can(Permission::UsersInvite);
 ```
 
@@ -32,7 +32,7 @@ Scopes do not prove membership by themselves. Your app still owns membership, in
 
 For example, this role assignment says the user has `Owner` access in a company:
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Owner);
 ```
 
@@ -45,7 +45,7 @@ The optional `access:scope` command can generate that application layer for you,
 
 For example:
 
-```php
+```php:line-numbers
 $company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
 $user->in($company)->assignRole(CompanyRole::Admin);
 ```
@@ -68,7 +68,7 @@ The command scaffolds first-party app code: a `Company` model, membership and in
 
 The authorization API does not change:
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Admin);
 $user->in($company)->can(Permission::UsersInvite);
 ```

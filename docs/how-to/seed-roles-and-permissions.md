@@ -41,7 +41,7 @@ php artisan access:sync
 
 Definitions live in code:
 
-```php
+```php:line-numbers
 // app/Enums/Permission.php
 enum Permission: string
 {
@@ -51,7 +51,7 @@ enum Permission: string
 }
 ```
 
-```php
+```php:line-numbers
 // config/access.php
 'permission_enums' => [
     Permission::class,
@@ -74,7 +74,7 @@ enum Permission: string
 
 Assignments live in the database:
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Owner);
 $user->assignGlobalRole('Platform Admin');
 ```
@@ -85,7 +85,7 @@ When you change permissions or role definitions, update the enum/config and run 
 
 In scoped apps, `roles` are assigned inside a model such as a company, team, workspace, or tenant. The same user can have different roles in different scopes.
 
-```php
+```php:line-numbers
 // config/access.php
 'default_scope_model' => Company::class,
 
@@ -115,7 +115,7 @@ php artisan access:seeder --name=company --class=DemoCompanySeeder
 
 That command generates an editable starter seeder. The core shape should stay the same:
 
-```php
+```php:line-numbers
 namespace Database\Seeders;
 
 use App\Enums\CompanyRole;
@@ -149,7 +149,7 @@ class DemoCompanySeeder extends Seeder
 
 The membership write and access assignment are intentionally separate:
 
-```php
+```php:line-numbers
 $company->users()->syncWithoutDetaching([
     $owner->getKey() => ['role' => CompanyRole::Owner->value],
 ]);
@@ -163,7 +163,7 @@ The first line says the user belongs to the company. The second line says what t
 
 In global-only apps, leave `default_scope_model` as `null`, leave `roles` empty, and put app-wide roles in `global_roles`.
 
-```php
+```php:line-numbers
 // config/access.php
 'default_scope_model' => null,
 
@@ -183,7 +183,7 @@ In global-only apps, leave `default_scope_model` as `null`, leave `roles` empty,
 
 Then seed global assignments:
 
-```php
+```php:line-numbers
 namespace Database\Seeders;
 
 use App\Models\User;
@@ -237,7 +237,7 @@ Seeders should be safe to run more than once:
 
 A typical `DatabaseSeeder` order is:
 
-```php
+```php:line-numbers
 public function run(): void
 {
     $this->call([
@@ -259,7 +259,7 @@ php artisan db:seed --class=DatabaseSeeder --force
 
 Do not put scoped company roles in `global_roles`:
 
-```php
+```php:line-numbers
 // Avoid for company membership
 'global_roles' => [
     'Owner' => [Permission::BillingManage],
@@ -268,7 +268,7 @@ Do not put scoped company roles in `global_roles`:
 
 Use scoped `roles` instead:
 
-```php
+```php:line-numbers
 'roles' => [
     CompanyRole::Owner->value => [Permission::BillingManage],
 ],
@@ -276,14 +276,14 @@ Use scoped `roles` instead:
 
 Do not assign a scoped role without a scope:
 
-```php
+```php:line-numbers
 // Avoid for scoped apps
 $user->assignGlobalRole(CompanyRole::Owner);
 ```
 
 Assign it in the scope:
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Owner);
 ```
 

@@ -8,7 +8,7 @@ Use Laravel policies for object-specific authorization and call Laravel Access i
 
 This keeps controllers simple and keeps access decisions close to the model being protected.
 
-```php
+```php:line-numbers
 namespace App\Policies;
 
 use App\Enums\Permission;
@@ -31,7 +31,7 @@ class CompanyPolicy
 
 Controllers stay Laravel-native:
 
-```php
+```php:line-numbers
 $this->authorize('inviteUsers', $company);
 ```
 
@@ -39,7 +39,7 @@ $this->authorize('inviteUsers', $company);
 
 Register policies the same way you normally would in Laravel:
 
-```php
+```php:line-numbers
 use App\Models\Company;
 use App\Policies\CompanyPolicy;
 
@@ -50,7 +50,7 @@ Gate::policy(Company::class, CompanyPolicy::class);
 
 Policies can include both permission checks and object-specific checks:
 
-```php
+```php:line-numbers
 public function update(User $user, Company $company): bool
 {
     return $company->isActive()

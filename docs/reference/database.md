@@ -10,7 +10,7 @@ Laravel Access creates four tables.
 
 Stores permission definitions.
 
-```text
+```text:line-numbers
 id
 name
 label
@@ -23,7 +23,7 @@ updated_at
 
 Stores reusable role definitions.
 
-```text
+```text:line-numbers
 id
 name
 label
@@ -37,7 +37,7 @@ updated_at
 
 Connects roles to permissions.
 
-```text
+```text:line-numbers
 role_id
 permission_id
 ```
@@ -46,7 +46,7 @@ permission_id
 
 Assigns a role or direct permission to an actor, globally or in a scope.
 
-```text
+```text:line-numbers
 id
 actor_type
 actor_id
@@ -64,7 +64,7 @@ Exactly one of `role_id` or `permission_id` should be present.
 
 The assignments table has separate unique indexes for role assignments and direct permission assignments:
 
-```text
+```text:line-numbers
 actor_type, actor_id, role_id, scope_type, scope_id
 actor_type, actor_id, permission_id, scope_type, scope_id
 ```
@@ -75,14 +75,14 @@ This prevents duplicate assignments for the same actor and scope.
 
 Global rows have no scope:
 
-```text
+```text:line-numbers
 scope_type = null
 scope_id = null
 ```
 
 Scoped rows store both scope columns:
 
-```text
+```text:line-numbers
 scope_type = App\Models\Company
 scope_id = 1
 ```
@@ -91,7 +91,7 @@ scope_id = 1
 
 The optional `access:scope` command generates additional application tables such as:
 
-```text
+```text:line-numbers
 companies
 company_members
 company_invitations
@@ -102,7 +102,7 @@ Those tables are not Laravel Access authorization tables. They represent members
 
 Laravel Access still stores permissions, roles, and assignments in the `access_*` tables. A common company setup writes to both systems:
 
-```php
+```php:line-numbers
 $company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
 $user->in($company)->assignRole(CompanyRole::Admin);
 ```

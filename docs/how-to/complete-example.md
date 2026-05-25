@@ -18,14 +18,14 @@ A project management SaaS where:
 
 ## Models
 
-| Model | Purpose | Source |
-|---|---|---|
-| `User` | Authenticated actor using `HasAccess` and generated `HasCompanies` | App + scaffold |
-| `Company` | Scope model, route-bound by slug | `access:scope` |
-| `Membership` | Company membership pivot with enum-cast role | `access:scope` |
-| `CompanyInvitation` | Invitation model with code, expiry, acceptance | `access:scope` |
-| `Project` | Belongs to company | You create |
-| `Task` | Belongs to project | You create |
+| Model               | Purpose                                                            | Source         |
+| ------------------- | ------------------------------------------------------------------ | -------------- |
+| `User`              | Authenticated actor using `HasAccess` and generated `HasCompanies` | App + scaffold |
+| `Company`           | Scope model, route-bound by slug                                   | `access:scope` |
+| `Membership`        | Company membership pivot with enum-cast role                       | `access:scope` |
+| `CompanyInvitation` | Invitation model with code, expiry, acceptance                     | `access:scope` |
+| `Project`           | Belongs to company                                                 | You create     |
+| `Task`              | Belongs to project                                                 | You create     |
 
 ## 1. Install and Scaffold Company Scopes
 
@@ -81,7 +81,7 @@ php artisan access:scope --name=company --frontend=react --notifications
 
 The command generates the company membership layer:
 
-```text
+```text:line-numbers
 database/migrations/*_create_companies_table.php
 database/migrations/*_create_company_members_table.php
 database/migrations/*_create_company_invitations_table.php
@@ -100,14 +100,14 @@ It also generates basic Tailwind starter invitation error and invited-registrati
 
 For a company app, the generated UI files are:
 
-```text
+```text:line-numbers
 resources/views/auth/company-invitation-error.blade.php
 resources/views/auth/company-invited-register.blade.php
 ```
 
 Or, for Inertia:
 
-```text
+```text:line-numbers
 resources/js/Pages/auth/CompanyInvitationError.{tsx,vue,svelte}
 resources/js/Pages/auth/CompanyInvitedRegister.{tsx,vue,svelte}
 ```
@@ -120,7 +120,7 @@ It also patches `config/access.php`, `app/Models/User.php`, `app/Providers/AppSe
 
 Add `HasAccess` to `User`. The generated `HasCompanies` trait is added by the scaffold unless you passed `--no-concern`.
 
-```php
+```php:line-numbers
 use App\Concerns\HasCompanies;
 use Maxiviper117\Access\Concerns\HasAccess;
 
@@ -135,7 +135,7 @@ class User extends Authenticatable
 
 Edit `app/Enums/Permission.php`:
 
-```php
+```php:line-numbers
 namespace App\Enums;
 
 enum Permission: string
@@ -160,7 +160,7 @@ enum Permission: string
 
 `access:scope` already points `default_scope_model` to `Company::class`. Keep `Permission.php` listed in `permission_enums`, then configure scoped roles. Use generated `CompanyRole` enum values so membership roles and access roles stay aligned.
 
-```php
+```php:line-numbers
 use App\Enums\CompanyRole;
 use App\Enums\Permission;
 use App\Models\Company;
@@ -227,7 +227,7 @@ return [
 
 The company and membership tables are already generated. Add only the app-specific project and task tables.
 
-```php
+```php:line-numbers
 // database/migrations/xxxx_xx_xx_000001_create_projects_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -253,7 +253,7 @@ return new class extends Migration
 };
 ```
 
-```php
+```php:line-numbers
 // database/migrations/xxxx_xx_xx_000002_create_tasks_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -293,7 +293,7 @@ php artisan access:sync
 
 Add the domain relationships to the generated `Company` model:
 
-```php
+```php:line-numbers
 // app/Models/Company.php
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -305,7 +305,7 @@ public function projects(): HasMany
 
 Create `Project`:
 
-```php
+```php:line-numbers
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -333,7 +333,7 @@ class Project extends Model
 
 Create `Task`:
 
-```php
+```php:line-numbers
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -362,7 +362,7 @@ class Task extends Model
 
 Policies combine object rules with Laravel Access permission checks.
 
-```php
+```php:line-numbers
 namespace App\Policies;
 
 use App\Enums\Permission;
@@ -407,7 +407,7 @@ class ProjectPolicy
 
 Task policies follow the same pattern by resolving the company through `$task->project->company`.
 
-```php
+```php:line-numbers
 namespace App\Policies;
 
 use App\Enums\Permission;
@@ -438,7 +438,7 @@ class TaskPolicy
 
 Use the generated company middleware to prove membership and set the current company. Use the `access` middleware for simple permission checks.
 
-```php
+```php:line-numbers
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
@@ -470,7 +470,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 If you generated notification helpers, the command also adds a protected invitation creation route in `routes/company-invitations.php`:
 
-```php
+```php:line-numbers
 Route::post('{company:slug}/invitations', [CompanyInvitationController::class, 'store'])
     ->middleware(['auth', 'company:Admin'])
     ->name('company.invitations.store');
@@ -486,7 +486,7 @@ Nested routes like `tasks/{task}` can rely on policies because the company is re
 
 Keep controllers thin and authorize through policies.
 
-```php
+```php:line-numbers
 namespace App\Http\Controllers;
 
 use App\Models\Company;
@@ -525,7 +525,7 @@ Invitations are app membership records first. When `--notifications` is enabled,
 
 The generated route is:
 
-```php
+```php:line-numbers
 Route::post('{company:slug}/invitations', [CompanyInvitationController::class, 'store'])
     ->middleware(['auth', 'company:Admin'])
     ->name('company.invitations.store');
@@ -533,7 +533,7 @@ Route::post('{company:slug}/invitations', [CompanyInvitationController::class, '
 
 A simple invite form can post to that route:
 
-```blade
+```blade:line-numbers
 <form method="POST" action="{{ route('company.invitations.store', $company) }}">
     @csrf
 
@@ -552,7 +552,7 @@ The notification links to `company.invitations.show`. Existing users can accept 
 
 Membership and access permissions are still separate. If you want invited users to receive Laravel Access roles immediately, add the matching access assignment inside the generated `acceptInvitation` method:
 
-```php
+```php:line-numbers
 $user->in($invitation->company)->assignRole($invitation->role);
 ```
 
@@ -562,7 +562,7 @@ That keeps the generated `company_members.role` value and Laravel Access role as
 
 Use the current company relation generated by `access:scope`.
 
-```php
+```php:line-numbers
 use App\Enums\Permission;
 use Maxiviper117\Access\Facades\Access;
 
@@ -586,7 +586,7 @@ use Maxiviper117\Access\Facades\Access;
 
 The frontend receives a simple permission map:
 
-```php
+```php:line-numbers
 [
     'projects.view' => true,
     'projects.create' => true,
@@ -599,7 +599,7 @@ The frontend receives a simple permission map:
 
 Create users, a company, membership rows, and scoped access assignments. Membership and authorization are separate writes.
 
-```php
+```php:line-numbers
 namespace Database\Seeders;
 
 use App\Enums\CompanyRole;
@@ -658,7 +658,7 @@ For production seed/update patterns, including global-only apps, read [Seed role
 
 Test permission checks at the policy level:
 
-```php
+```php:line-numbers
 namespace Tests\Unit;
 
 use App\Enums\CompanyRole;
@@ -715,7 +715,7 @@ class ProjectPolicyTest extends TestCase
 
 Test HTTP routes with the generated company middleware and access middleware:
 
-```php
+```php:line-numbers
 namespace Tests\Feature;
 
 use App\Enums\CompanyRole;

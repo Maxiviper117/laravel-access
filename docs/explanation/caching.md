@@ -33,7 +33,7 @@ That makes old keys unreachable without flushing unrelated application cache ent
 
 Disable cache while debugging authorization behavior:
 
-```php
+```php:line-numbers
 'cache' => [
     'enabled' => false,
 ],

@@ -260,7 +260,7 @@ use Maxiviper117\Access\Facades\Access;
 
 The frontend receives:
 
-```php
+```php:line-numbers
 [
     'users.invite' => true,
     'roles.manage' => false,

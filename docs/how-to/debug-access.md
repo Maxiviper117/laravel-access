@@ -12,7 +12,7 @@ php artisan access:debug david@example.com --scope=company:1
 
 The command uses `default_scope_model` to resolve the scope ID. Configure it first:
 
-```php
+```php:line-numbers
 'default_scope_model' => App\Models\Company::class,
 ```
 
@@ -36,13 +36,13 @@ If a user cannot perform an action, check these in order:
 
 This assignment:
 
-```php
+```php:line-numbers
 $user->in($companyA)->assignRole('Owner');
 ```
 
 does not allow this check:
 
-```php
+```php:line-numbers
 $user->in($companyB)->can(Permission::UsersInvite);
 ```
 

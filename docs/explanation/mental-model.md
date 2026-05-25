@@ -14,7 +14,7 @@ Laravel Access has one authorization data model:
 
 The package intentionally encourages permission checks instead of role checks:
 
-```php
+```php:line-numbers
 $user->in($company)->can(Permission::UsersInvite);
 ```
 
@@ -24,7 +24,7 @@ Role checks still exist for exceptional cases, but policy code should normally a
 
 Permissions are more stable than roles. A role named `Admin` might gain or lose abilities as the product changes, but a policy usually needs one specific answer:
 
-```php
+```php:line-numbers
 return $user->in($company)->can(Permission::UsersInvite);
 ```
 
@@ -34,7 +34,7 @@ This keeps policy code readable even when roles evolve.
 
 The scope is part of the check:
 
-```php
+```php:line-numbers
 $user->in($company)->can(Permission::CompanyUpdate);
 ```
 
@@ -44,7 +44,7 @@ That is deliberate. Laravel Access does not maintain a global current team or te
 
 Global access exists for platform-level roles:
 
-```php
+```php:line-numbers
 $user->assignGlobalRole('Platform Admin');
 $user->canGlobally(Permission::SystemManage);
 ```

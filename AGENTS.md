@@ -102,6 +102,7 @@ When editing `AccessSeederCommand`:
 - Mention multiple permission enums only as an intentional modular setup.
 - Update sidebar config in `.vitepress/config.mts` when adding new docs pages.
 - Prefer short, practical examples over exhaustive framework explanation.
+- Use `:line-numbers` on non-bash fenced code blocks in docs.
 
 ## Verification Expectations
 

@@ -8,7 +8,7 @@ Use backed enums as the source of truth for permission names. Most apps should s
 
 Keep permission names stable. They are stored in the database and used by policies, middleware, and frontend permission maps.
 
-```php
+```php:line-numbers
 namespace App\Enums;
 
 enum Permission: string
@@ -22,9 +22,9 @@ enum Permission: string
 }
 ```
 
-Point the package at the enum:
+Point the package at the enum by adding it to the `permission_enums` array in `config/access.php`:
 
-```php
+```php:line-numbers
 'permission_enums' => [
     App\Enums\Permission::class,
 ],
@@ -42,7 +42,7 @@ The sync command creates missing database rows and reports stale permissions bef
 
 For modular apps, list more enums:
 
-```php
+```php:line-numbers
 'permission_enums' => [
     App\Enums\CompanyPermission::class,
     App\Enums\ProjectPermission::class,
@@ -56,7 +56,7 @@ Every enum in `permission_enums` is synced.
 
 Use dot notation:
 
-```php
+```php:line-numbers
 case UsersInvite = 'users.invite';
 case RolesManage = 'roles.manage';
 case CompanyUpdate = 'company.update';
@@ -72,7 +72,7 @@ Prefer verbs that describe capabilities:
 
 Avoid role names as permission names:
 
-```php
+```php:line-numbers
 // Avoid
 case Owner = 'owner';
 case Admin = 'admin';

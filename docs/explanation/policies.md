@@ -8,7 +8,7 @@ Laravel Access does not replace Laravel policies. It gives policies a database-b
 
 Use this package inside policies:
 
-```php
+```php:line-numbers
 public function update(User $user, Company $company): bool
 {
     return $user->in($company)->can(Permission::CompanyUpdate);
@@ -17,7 +17,7 @@ public function update(User $user, Company $company): bool
 
 Use Laravel authorization from controllers:
 
-```php
+```php:line-numbers
 $this->authorize('update', $company);
 ```
 
@@ -27,7 +27,7 @@ This keeps route and controller code clean while keeping object-specific rules i
 
 Use permissions for broad abilities:
 
-```php
+```php:line-numbers
 Permission::UsersInvite
 Permission::RolesManage
 Permission::CompanyUpdate
@@ -35,14 +35,14 @@ Permission::CompanyUpdate
 
 Use policies for object-specific rules:
 
-```php
+```php:line-numbers
 return $company->isActive()
     && $user->in($company)->can(Permission::UsersInvite);
 ```
 
 Use middleware for simple route-level checks where the route parameter is enough:
 
-```php
+```php:line-numbers
 ->middleware('access:users.invite,company')
 ```
 

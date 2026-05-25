@@ -12,14 +12,14 @@ Use `access:scope` when your app needs team-style membership, invitations, curre
 
 The generated code is first-party application code. Laravel Access still only answers authorization questions like:
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Admin);
 $user->in($company)->can(Permission::CompanyMembersInvite);
 ```
 
 When the scaffold generates a role enum, prefer using direct enum instances instead of repeating raw role strings:
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Admin);
 ```
 
@@ -58,19 +58,19 @@ php artisan access:scope --name=company --notifications
 
 The selected name drives every generated table, class, relationship, middleware, and route parameter.
 
-| Concept | `team` | `company` |
-|---|---|---|
-| Scope table | `teams` | `companies` |
-| Members table | `team_members` | `company_members` |
-| Invitations table | `team_invitations` | `company_invitations` |
-| User current scope column | `current_team_id` | `current_company_id` |
-| Scope model | `Team` | `Company` |
-| Invitation model | `TeamInvitation` | `CompanyInvitation` |
-| Concern | `HasTeams` | `HasCompanies` |
-| Middleware | `EnsureTeamMembership` | `EnsureCompanyMembership` |
-| Role enum | `TeamRole` | `CompanyRole` |
-| Permission cases | `TeamMembersInvite` | `CompanyMembersInvite` |
-| Current route parameter | `{current_team}` | `{current_company}` |
+| Concept                   | `team`                 | `company`                 |
+| ------------------------- | ---------------------- | ------------------------- |
+| Scope table               | `teams`                | `companies`               |
+| Members table             | `team_members`         | `company_members`         |
+| Invitations table         | `team_invitations`     | `company_invitations`     |
+| User current scope column | `current_team_id`      | `current_company_id`      |
+| Scope model               | `Team`                 | `Company`                 |
+| Invitation model          | `TeamInvitation`       | `CompanyInvitation`       |
+| Concern                   | `HasTeams`             | `HasCompanies`            |
+| Middleware                | `EnsureTeamMembership` | `EnsureCompanyMembership` |
+| Role enum                 | `TeamRole`             | `CompanyRole`             |
+| Permission cases          | `TeamMembersInvite`    | `CompanyMembersInvite`    |
+| Current route parameter   | `{current_team}`       | `{current_company}`       |
 
 For irregular words, pass overrides:
 
@@ -82,7 +82,7 @@ php artisan access:scope --name=alumnus --plural=alumni
 
 For `--name=company`, the command publishes:
 
-```text
+```text:line-numbers
 database/migrations/*_create_companies_table.php
 database/migrations/*_create_company_members_table.php
 database/migrations/*_create_company_invitations_table.php
@@ -101,13 +101,13 @@ resources/views/auth/company-invited-register.blade.php
 
 With `--notifications`, it also publishes:
 
-```text
+```text:line-numbers
 app/Notifications/CompanyInvitationNotification.php
 ```
 
 If you choose an Inertia frontend, the Blade files are replaced with starter pages:
 
-```text
+```text:line-numbers
 resources/js/Pages/auth/CompanyInvitationError.tsx
 resources/js/Pages/auth/CompanyInvitedRegister.tsx
 ```
@@ -116,7 +116,7 @@ For Vue the extension is `.vue`; for Svelte the extension is `.svelte`.
 
 It also updates:
 
-```text
+```text:line-numbers
 config/access.php
 app/Enums/Permission.php
 app/Models/User.php
@@ -126,7 +126,7 @@ bootstrap/app.php
 
 The `bootstrap/app.php` update registers both the generated middleware alias and the generated invitation route file:
 
-```php
+```php:line-numbers
 ->withRouting(
     web: __DIR__.'/../routes/web.php',
     commands: __DIR__.'/../routes/console.php',
@@ -146,14 +146,14 @@ The generated invitation UI is basic Tailwind starter code. Most apps should cus
 
 Blade output uses:
 
-```text
+```text:line-numbers
 resources/views/auth/company-invitation-error.blade.php
 resources/views/auth/company-invited-register.blade.php
 ```
 
 Inertia output uses:
 
-```text
+```text:line-numbers
 resources/js/Pages/auth/CompanyInvitationError.{tsx,vue,svelte}
 resources/js/Pages/auth/CompanyInvitedRegister.{tsx,vue,svelte}
 ```
@@ -176,7 +176,7 @@ php artisan migrate
 
 Then configure your permissions and roles:
 
-```php
+```php:line-numbers
 // app/Enums/Permission.php
 enum Permission: string
 {
@@ -188,7 +188,7 @@ enum Permission: string
 }
 ```
 
-```php
+```php:line-numbers
 // config/access.php
 use App\Enums\CompanyRole;
 
@@ -217,7 +217,7 @@ use App\Enums\CompanyRole;
 
 `access:scope` writes the generated model into `config/access.php`:
 
-```php
+```php:line-numbers
 'default_scope_model' => App\Models\Company::class,
 
 'teams' => [
@@ -239,7 +239,7 @@ php artisan access:sync
 
 From there, use the generated membership layer for "does this user belong to this company?" and Laravel Access for "what may this user do inside this company?":
 
-```php
+```php:line-numbers
 $company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
 
 $user->in($company)->assignRole(CompanyRole::Admin);
@@ -251,7 +251,7 @@ if ($user->in($company)->can(Permission::CompanyMembersInvite)) {
 
 For route protection, combine the generated scope membership middleware with Laravel Access permissions:
 
-```php
+```php:line-numbers
 Route::middleware(['auth', 'company'])
     ->prefix('{current_company}')
     ->group(function () {
@@ -274,7 +274,7 @@ The tables generated by `access:scope` are not replacements for the core Laravel
 
 Generated scope tables store app membership state:
 
-```text
+```text:line-numbers
 companies
 company_members
 company_invitations
@@ -290,7 +290,7 @@ They answer questions like:
 
 Laravel Access tables store authorization state:
 
-```text
+```text:line-numbers
 access_permissions
 access_roles
 access_role_permissions
@@ -306,7 +306,7 @@ They answer questions like:
 
 That is why setup often has two writes:
 
-```php
+```php:line-numbers
 $company->users()->attach($user, ['role' => CompanyRole::Admin->value]);
 
 $user->in($company)->assignRole(CompanyRole::Admin);
@@ -318,7 +318,7 @@ You can keep membership roles and access roles in sync, or let them diverge. For
 
 For policies, keep the same pattern:
 
-```php
+```php:line-numbers
 public function invite(User $user, Company $company): bool
 {
     return $user->belongsToCompany($company)
@@ -336,7 +336,7 @@ The main manual wiring left after scaffolding is usually:
 
 The generated membership layer is intentionally simple:
 
-```text
+```text:line-numbers
 users
   current_company_id
 
@@ -364,7 +364,7 @@ The scope model uses soft deletes and route model binding by `slug`.
 
 The `role` columns are strings in the database, but generated models cast them to the generated role enum:
 
-```php
+```php:line-numbers
 $membership->role === CompanyRole::Admin;
 $invitation->role === CompanyRole::Admin;
 $user->companyRole($company) === CompanyRole::Admin;
@@ -374,7 +374,7 @@ $user->companyRole($company) === CompanyRole::Admin;
 
 Generated scoped routes can use a current scope parameter:
 
-```php
+```php:line-numbers
 Route::middleware(['auth', 'company'])->prefix('{current_company}')->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 });
@@ -384,7 +384,7 @@ When the request contains `{current_company}`, `EnsureCompanyMembership` verifie
 
 The generated `AppServiceProvider` URL defaults let Laravel inject the current company slug into named routes:
 
-```php
+```php:line-numbers
 route('dashboard');
 ```
 
@@ -392,7 +392,7 @@ route('dashboard');
 
 The scaffold includes an invitation flow for existing and brand-new users:
 
-```php
+```php:line-numbers
 Route::get('invitations/{invitation:code}', [CompanyInvitationController::class, 'show']);
 Route::post('invitations/{invitation:code}/accept', [CompanyInvitationController::class, 'accept']);
 Route::get('invitations/{invitation:code}/register', [CompanyInvitationController::class, 'registerForm']);
@@ -403,7 +403,7 @@ If no user exists for the invited email, the invitee is sent to the dedicated in
 
 Configure this behavior in `config/access.php`:
 
-```php
+```php:line-numbers
 'invitations' => [
     'require_existing_user' => false,
     'expiry_days' => 7,
@@ -421,7 +421,7 @@ php artisan access:scope --name=company --notifications
 
 That adds `CompanyInvitationNotification`, a `store` method for creating invitations, a private `sendInvitation` helper, and a protected route like:
 
-```php
+```php:line-numbers
 Route::post('{company:slug}/invitations', [CompanyInvitationController::class, 'store'])
     ->middleware(['auth', 'company:Admin'])
     ->name('company.invitations.store');
@@ -439,7 +439,7 @@ php artisan access:sync
 
 Keep the names aligned when you want membership roles and authorization roles to match:
 
-```php
+```php:line-numbers
 use App\Enums\CompanyRole;
 
 'roles' => [
@@ -451,6 +451,6 @@ use App\Enums\CompanyRole;
 
 Then assign access in the generated scope:
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Admin);
 ```

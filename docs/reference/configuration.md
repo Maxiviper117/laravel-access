@@ -8,7 +8,7 @@ title: Configuration
 
 ## Full Config File
 
-```php
+```php:line-numbers
 <?php
 
 use App\Enums\Permission;
@@ -217,7 +217,7 @@ The distinction matters when seeding. `roles` are assigned with `$user->in($scop
 
 ## Scoped Mode Quick Reference
 
-```php
+```php:line-numbers
 'default_scope_model' => Company::class,
 
 'roles' => [
@@ -229,14 +229,14 @@ The distinction matters when seeding. `roles` are assigned with `$user->in($scop
 ],
 ```
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Owner);
 $user->in($company)->can(Permission::CompanyMembersInvite);
 ```
 
 ## Global-Only Mode Quick Reference
 
-```php
+```php:line-numbers
 'default_scope_model' => null,
 
 'roles' => [],
@@ -247,7 +247,7 @@ $user->in($company)->can(Permission::CompanyMembersInvite);
 ],
 ```
 
-```php
+```php:line-numbers
 $user->assignGlobalRole('Admin');
 $user->canGlobally(Permission::UsersInvite);
 ```
@@ -256,7 +256,7 @@ $user->canGlobally(Permission::UsersInvite);
 
 When enabled, the configured global role can bypass Laravel Gate checks:
 
-```php
+```php:line-numbers
 'gate_before' => [
     'enabled' => false, // [!code --]
     'enabled' => true, // [!code ++]

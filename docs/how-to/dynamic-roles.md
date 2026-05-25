@@ -26,14 +26,14 @@ To allow a tenant administrator to create a custom role within their scope, use 
 > [!NOTE]
 > In all of the examples below, the `$scope` variable refers to a concrete instance of your application's scoped tenant model (for example, a `Workspace`, `Team`, or `Company` instance).
 
-```php
+```php:line-numbers
 // Create the role within the specific scope using a string name
 $role = $user->in($scope)->createRole('editor-assistant', 'Editor Assistant', 'Help with editing articles');
 ```
 
 You can also pass a `BackedEnum` as the role name. The enum's `value` is used as the role name:
 
-```php
+```php:line-numbers
 use App\Enums\CompanyRole;
 
 $role = $user->in($scope)->createRole(CompanyRole::Admin, 'Company Admin');
@@ -47,7 +47,7 @@ Present your tenant administrators with a checkbox list of the static **System P
 
 While standard strings are fully supported, using a PHP Backed Enum is highly recommended:
 
-```php
+```php:line-numbers
 use App\Enums\Permission;
 
 $user->in($scope)->syncRolePermissions('editor-assistant', [
@@ -58,7 +58,7 @@ $user->in($scope)->syncRolePermissions('editor-assistant', [
 
 You can also reference a role by its `BackedEnum` value when the role name matches an enum case:
 
-```php
+```php:line-numbers
 use App\Enums\CompanyRole;
 use App\Enums\Permission;
 
@@ -72,7 +72,7 @@ $user->in($scope)->syncRolePermissions(CompanyRole::Admin, [
 
 Alternatively, if you want to add or remove individual permissions from a role dynamically without replacing the entire list, use `addPermissionToRole` and `removePermissionFromRole`:
 
-```php
+```php:line-numbers
 use App\Enums\Permission;
 
 // Add a single permission to a dynamic role
@@ -93,7 +93,7 @@ Checking user access with scoped roles is identical to checking static roles. La
 
 For all developer-defined roles, using PHP Backed Enums is highly recommended for IDE autocompletion, type safety, and clean static analysis:
 
-```php
+```php:line-numbers
 use App\Enums\CompanyRole;
 
 // Assign the role cleanly using the enum case
@@ -109,7 +109,7 @@ if ($user->in($scope)->hasRole(CompanyRole::Admin)) {
 
 If a custom role is created dynamically by an end-user at runtime (where no compile-time PHP enum exists), you can pass its standard string name instead:
 
-```php
+```php:line-numbers
 // Assign the dynamically created role by string name
 $user->in($scope)->assignRole('custom-role-name');
 
@@ -123,7 +123,7 @@ if ($user->in($scope)->hasRole('custom-role-name')) {
 
 In B2B apps, you should check permissions instead of roles in your policies and controllers. This ensures that even if a tenant admin changes the permissions of the `editor-assistant` role, your authorization logic remains 100% correct:
 
-```php
+```php:line-numbers
 // Check the permission (automatically resolves through the custom role mapping)
 if ($user->in($scope)->can(Permission::PostCreate)) {
     // Authorized!
@@ -136,20 +136,20 @@ if ($user->in($scope)->can(Permission::PostCreate)) {
 
 To retrieve the applicable roles inside the current scope (including both system roles and custom workspace-specific roles), call `roles()`:
 
-```php
+```php:line-numbers
 // Get all roles available in this scope
 $roles = $user->in($scope)->roles();
 ```
 
 To delete a role within the current scope:
 
-```php
+```php:line-numbers
 $user->in($scope)->deleteRole('editor-assistant');
 ```
 
 You can also pass a `BackedEnum` for developer-defined roles:
 
-```php
+```php:line-numbers
 use App\Enums\CompanyRole;
 
 $user->in($scope)->deleteRole(CompanyRole::Admin);
@@ -164,7 +164,7 @@ To authorize users to create/edit roles, you should define a static **meta-permi
 
 You can then write standard Laravel **Model Policies** to protect your role administration endpoints:
 
-```php
+```php:line-numbers
 namespace App\Policies;
 
 use App\Enums\Permission;
@@ -244,7 +244,7 @@ These classes follow the **Single Responsibility Principle (SRP)**, encapsulatin
 
 Use `CreateRole::run()` to create custom dynamic roles. You can pass a `BackedEnum` or `string` for the name. If `label` is omitted, it will be automatically converted to a developer-friendly headline string (e.g. `'editor-assistant'` becomes `Editor Assistant`):
 
-```php
+```php:line-numbers
 use App\Actions\Access\CreateRole;
 
 // Create a scoped custom role using a string name
@@ -264,7 +264,7 @@ $role = CreateRole::run(
 
 You can also pass a `BackedEnum` for the role name. The enum's `value` is used:
 
-```php
+```php:line-numbers
 use App\Actions\Access\CreateRole;
 use App\Enums\CompanyRole;
 
@@ -278,7 +278,7 @@ $role = CreateRole::run(
 
 Use `SyncRolePermissions::run()` to map developer-defined enum permissions onto custom roles. The `role` argument accepts a `BackedEnum`, `string`, or `Role` model instance:
 
-```php
+```php:line-numbers
 use App\Actions\Access\SyncRolePermissions;
 use App\Enums\Permission;
 
@@ -296,7 +296,7 @@ SyncRolePermissions::run(
 
 Use `AddPermissionToRole::run()` to add a single permission to a dynamic role:
 
-```php
+```php:line-numbers
 use App\Actions\Access\AddPermissionToRole;
 use App\Enums\Permission;
 
@@ -311,7 +311,7 @@ AddPermissionToRole::run(
 
 Use `RemovePermissionFromRole::run()` to remove a single permission from a dynamic role:
 
-```php
+```php:line-numbers
 use App\Actions\Access\RemovePermissionFromRole;
 use App\Enums\Permission;
 
@@ -326,7 +326,7 @@ RemovePermissionFromRole::run(
 
 Use `DeleteRole::run()` to safely delete dynamic roles. This action accepts a `BackedEnum`, `string`, or `Role` model instance:
 
-```php
+```php:line-numbers
 use App\Actions\Access\DeleteRole;
 
 DeleteRole::run('editor-assistant', $scope);

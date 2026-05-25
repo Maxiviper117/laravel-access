@@ -6,7 +6,7 @@ title: User API
 
 Add `HasAccess` to the user model.
 
-```php
+```php:line-numbers
 use Maxiviper117\Access\Concerns\HasAccess;
 
 class User extends Authenticatable
@@ -17,7 +17,7 @@ class User extends Authenticatable
 
 ## Scoped API
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole('Owner');
 $user->in($company)->removeRole('Owner');
 $user->in($company)->hasRole('Owner');
@@ -35,7 +35,7 @@ $user->in($company)->revokePermission(Permission::UsersInvite);
 
 Returns an access context for the given scope.
 
-```php
+```php:line-numbers
 $context = $user->in($company);
 ```
 
@@ -76,7 +76,7 @@ Role checks are available, but permission checks are preferred in policies.
 
 ## Global API
 
-```php
+```php:line-numbers
 $user->assignGlobalRole('Platform Admin');
 $user->removeGlobalRole('Platform Admin');
 $user->hasGlobalRole('Platform Admin');
@@ -109,7 +109,7 @@ Global role assignments have no scope. They are stored with null `scope_type` an
 
 ## Permission Maps
 
-```php
+```php:line-numbers
 $user->in($company)->toArray([
     Permission::UsersInvite,
     Permission::RolesManage,
@@ -118,7 +118,7 @@ $user->in($company)->toArray([
 
 Output:
 
-```php
+```php:line-numbers
 [
     'users.invite' => true,
     'roles.manage' => false,

@@ -19,7 +19,7 @@ Laravel Access syncs permission enums listed in `permission_enums`.
 
 Use the app-wide `Permission` enum as the default source of truth:
 
-```php
+```php:line-numbers
 // config/access.php
 use App\Enums\CompanyRole;
 use App\Enums\Permission;
@@ -39,7 +39,7 @@ use App\Enums\Permission;
 
 `access:install --enum` creates `app/Enums/Permission.php` and configures it here. `access:scope --name=company` adds company starter cases to that enum when the file exists:
 
-```php
+```php:line-numbers
 enum Permission: string
 {
     case CompanyMembersView = 'company.members.view';
@@ -56,7 +56,7 @@ This is the recommended default. One enum can hold permissions across company me
 
 Use multiple permission enums only when you deliberately want module-owned permission files:
 
-```php
+```php:line-numbers
 // config/access.php
 use App\Enums\BillingPermission;
 use App\Enums\CompanyPermission;
@@ -89,7 +89,7 @@ The role keys and permission values are separate choices:
 
 ## Scoped Roles
 
-```php
+```php:line-numbers
 use App\Enums\CompanyRole;
 use App\Enums\Permission;
 
@@ -119,7 +119,7 @@ use App\Enums\Permission;
 
 Global roles are separate. Replace the stub's commented block:
 
-```php
+```php:line-numbers
 'global_roles' => [ // [!code --]
     // 'Platform Admin' => [ // [!code --]
     //     App\Enums\Permission::SystemManage, // [!code --]
@@ -148,7 +148,7 @@ php artisan access:sync
 
 ## Assign Roles
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole(CompanyRole::Owner);
 $user->in($company)->assignRole(CompanyRole::Member);
 ```
@@ -158,7 +158,7 @@ $user->in($company)->assignRole(CompanyRole::Member);
 
 Role names are reusable definitions. A user can be an `Owner` in one company and a `Member` in another:
 
-```php
+```php:line-numbers
 $user->in($companyA)->assignRole(CompanyRole::Owner);
 $user->in($companyB)->assignRole(CompanyRole::Member);
 ```

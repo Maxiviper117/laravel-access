@@ -8,7 +8,7 @@ Build a small permission map for the active scope.
 
 Share permissions close to the request context where you already know the current scope.
 
-```php
+```php:line-numbers
 use App\Enums\Permission;
 use Maxiviper117\Access\Facades\Access;
 
@@ -23,7 +23,7 @@ use Maxiviper117\Access\Facades\Access;
 
 The output is keyed by permission value:
 
-```php
+```php:line-numbers
 [
     'users.invite' => true,
     'roles.manage' => false,
@@ -35,7 +35,7 @@ Use this only to shape the interface. Server-side policy checks still protect th
 
 ## Svelte Example
 
-```svelte
+```svelte:line-numbers
 {#if $page.props.access['users.invite']}
     <button>Invite user</button>
 {/if}
@@ -43,7 +43,7 @@ Use this only to shape the interface. Server-side policy checks still protect th
 
 ## React Example
 
-```tsx
+```tsx:line-numbers
 const canInvite = page.props.access['users.invite'];
 
 return canInvite ? <button>Invite user</button> : null;
@@ -53,7 +53,7 @@ return canInvite ? <button>Invite user</button> : null;
 
 Avoid sharing every permission in the system by default. Share the permissions the current page needs:
 
-```php
+```php:line-numbers
 Access::for($user)->in($company)->toArray([
     Permission::UsersInvite,
     Permission::RolesManage,
