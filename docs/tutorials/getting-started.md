@@ -23,7 +23,14 @@ php artisan migrate
 
 `access:install --enum` publishes config and migrations, creates a starter enum at `app/Enums/Permission.php` when the file does not already exist, adds it to `permission_enums` in `config/access.php`, and automatically adds the `HasAccess` trait to your User model.
 
-The command also scaffolds five reusable Action classes under `app/Actions/Access/` for managing dynamic custom roles: `CreateRole`, `DeleteRole`, `SyncRolePermissions`, `AddPermissionToRole`, and `RemovePermissionFromRole`. These follow the standard Laravel Actions pattern and accept `BackedEnum`, `string`, or `Role` model instances for role identification.
+The command also scaffolds five reusable Action classes under `app/Actions/Access/` for managing dynamic custom roles: 
+- `CreateRole`
+- `DeleteRole`
+- `SyncRolePermissions`
+- `AddPermissionToRole`
+- `RemovePermissionFromRole`
+
+These follow the standard Laravel Actions pattern and accept `BackedEnum`, `string`, or `Role` model instances for role identification.
 
 The `HasAccess` trait adds the fluent `in($scope)` method for scoped usage and global role helpers for global-only usage.
 
@@ -31,7 +38,7 @@ The `HasAccess` trait adds the fluent `in($scope)` method for scoped usage and g
 
 Edit `app/Enums/Permission.php`:
 
-```php
+```php:line-numbers
 namespace App\Enums;
 
 enum Permission: string
@@ -75,7 +82,7 @@ php artisan migrate
 
 Running the command interactively shows prompts for scope naming, invitation UI stack, and notification helpers:
 
-```
+```bash
 php artisan access:scope
 
  What should the group be called? [team]:
@@ -100,9 +107,12 @@ Singular: company  |  Plural: companies  |  Table: companies
 This command creates:
 
 - **Migrations** for the scope table, membership pivot, invitations, and `current_scope_id` on users
-- **Models** (`Company`, `Membership`, `CompanyInvitation`)
+- **Models** 
+  - `Company`
+  - `Membership` 
+  - `CompanyInvitation`
 - **`HasCompanies` concern** added to your User model
-- **`CompanyRole` enum** with `Owner`/`Admin`/`Member` and hierarchy levels
+- **`CompanyRole` enum** with default enum values `Owner`/`Admin`/`Member` and hierarchy levels
 - **Middleware** (`EnsureCompanyMembership`) for route protection
 - **Invitation controller, routes, and views** (Blade or Inertia with `--frontend=react|vue|svelte`)
 - **Config patches** — sets `default_scope_model` and writes scope metadata in `config/access.php`
@@ -118,7 +128,7 @@ The config examples below assume you used `access:scope` to generate your scope 
 
 Edit `config/access.php`. `access:scope` already set `default_scope_model` and scope metadata. Lines with a red `-` are removed from the stub. Lines with a green `+` are what you write:
 
-```php
+```php:line-numbers
 use App\Enums\Permission;
 
 return [
@@ -194,31 +204,31 @@ php artisan access:sync --dry-run
 
 ### Assign a Role
 
-```php
+```php:line-numbers
 $user->in($company)->assignRole('Owner');
 ```
 
 That assignment applies only to that company. The same user can have a different role in another company:
 
-```php
+```php:line-numbers
 $user->in($otherCompany)->assignRole('Member');
 ```
 
 ### Check a Permission
 
-```php
+```php:line-numbers
 $user->in($company)->can(Permission::UsersInvite);
 ```
 
 Raw strings also work, but enums are preferred:
 
-```php
+```php:line-numbers
 $user->in($company)->can('users.invite');
 ```
 
 ### Use a Policy
 
-```php
+```php:line-numbers
 public function inviteUsers(User $user, Company $company): bool
 {
     return $user->in($company)->can(Permission::UsersInvite);
@@ -227,7 +237,7 @@ public function inviteUsers(User $user, Company $company): bool
 
 Controllers can keep using Laravel authorization:
 
-```php
+```php:line-numbers
 $this->authorize('inviteUsers', $company);
 ```
 
@@ -235,7 +245,7 @@ $this->authorize('inviteUsers', $company);
 
 In your Inertia middleware, share only the permissions the current page needs:
 
-```php
+```php:line-numbers
 use App\Enums\Permission;
 use Maxiviper117\Access\Facades\Access;
 
@@ -270,7 +280,7 @@ Use this when your app has no multi-tenant isolation — permissions apply every
 
 Edit `config/access.php`. Lines with a red `-` are removed from the stub. Lines with a green `+` are what you write:
 
-```php
+```php:line-numbers
 use App\Enums\Permission;
 
 return [
@@ -334,31 +344,31 @@ php artisan access:sync
 
 ### Assign a Role
 
-```php
+```php:line-numbers
 $user->assignGlobalRole('Admin');
 ```
 
 Or use the `access()` context directly:
 
-```php
+```php:line-numbers
 $user->access()->assignRole('Admin');
 ```
 
 ### Check a Permission
 
-```php
+```php:line-numbers
 $user->canGlobally(Permission::UsersInvite);
 ```
 
 Or via the context:
 
-```php
+```php:line-numbers
 $user->access()->can(Permission::UsersInvite);
 ```
 
 ### Use a Policy
 
-```php
+```php:line-numbers
 public function inviteUsers(User $user): bool
 {
     return $user->canGlobally(Permission::UsersInvite);
@@ -367,7 +377,7 @@ public function inviteUsers(User $user): bool
 
 ### Share Permissions With Inertia
 
-```php
+```php:line-numbers
 use App\Enums\Permission;
 use Maxiviper117\Access\Facades\Access;
 
@@ -382,14 +392,14 @@ use Maxiviper117\Access\Facades\Access;
 
 ### What You Lose Without Scopes
 
-| Feature | Scoped | Global-only |
-|---------|--------|-------------|
-| Multi-tenant isolation | Yes | No |
-| Same user, different roles per context | Yes | No |
-| Route middleware (`access:perm,model`) | Yes | No |
-| `defineScopedGates()` | Yes | No |
-| Global role helpers | Yes | Yes |
-| `access()->can()` | Yes | Yes |
+| Feature                                | Scoped | Global-only |
+| -------------------------------------- | ------ | ----------- |
+| Multi-tenant isolation                 | Yes    | No          |
+| Same user, different roles per context | Yes    | No          |
+| Route middleware (`access:perm,model`) | Yes    | No          |
+| `defineScopedGates()`                  | Yes    | No          |
+| Global role helpers                    | Yes    | Yes         |
+| `access()->can()`                      | Yes    | Yes         |
 
 The middleware and `defineScopedGates()` require a scope model to resolve. For global-only apps, use policies or direct `$user->canGlobally()` checks instead.
 
