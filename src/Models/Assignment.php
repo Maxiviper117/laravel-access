@@ -12,6 +12,8 @@ use Maxiviper117\Access\Support\AccessCache;
  * @property int $actor_id
  * @property string|null $scope_type
  * @property int|null $scope_id
+ * @property int|null $role_id
+ * @property int|null $permission_id
  * @property Role|null $role
  * @property Permission|null $permission
  */
