@@ -33,7 +33,12 @@ class RoleRegistrar
 
         $ids = collect($permissions)
             ->map(fn (BackedEnum|string $permission): string => app(PermissionNormalizer::class)->normalize($permission))
-            ->map(fn (string $name): int => (is_scalar(Permission::query()->firstOrCreate(['name' => $name])->getKey()) ? (int) Permission::query()->firstOrCreate(['name' => $name])->getKey() : 0))
+            ->map(function (string $name): int {
+                $permission = Permission::query()->firstOrCreate(['name' => $name]);
+                $key = $permission->getKey();
+
+                return is_scalar($key) ? (int) $key : 0;
+            })
             ->all();
 
         $role->permissions()->sync($ids);
