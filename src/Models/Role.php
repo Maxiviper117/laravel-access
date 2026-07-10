@@ -5,6 +5,7 @@ namespace Maxiviper117\Access\Models;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use InvalidArgumentException;
 
 /**
  * @property string $name
@@ -24,6 +25,20 @@ class Role extends Model
         'is_global' => 'bool',
         'is_system' => 'bool',
     ];
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        static::saving(function (self $role): void {
+            $hasScopeType = $role->scope_type !== null;
+            $hasScopeId = $role->scope_id !== null;
+
+            if ($hasScopeType !== $hasScopeId) {
+                throw new InvalidArgumentException('A role scope must include both scope_type and scope_id.');
+            }
+
+        });
+    }
 
     /** @return BelongsToMany<Permission, $this> */
     public function permissions(): BelongsToMany

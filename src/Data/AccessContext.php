@@ -41,15 +41,12 @@ class AccessContext
     {
         $roleName = $name instanceof BackedEnum ? $name->value : $name;
 
-        return Role::query()->create([
+        return Role::query()->create($this->roleScopeAttributes([
             'name' => $roleName,
             'label' => $label ?? str((string) $roleName)->headline(),
             'description' => $description,
-            'is_global' => ! $this->scope instanceof Model,
             'is_system' => false,
-            'scope_type' => $this->scope?->getMorphClass(),
-            'scope_id' => $this->scope?->getKey(),
-        ]);
+        ]));
     }
 
     /**
@@ -406,13 +403,10 @@ class AccessContext
             return $globalRole;
         }
 
-        return Role::query()->create([
+        return Role::query()->create($this->roleScopeAttributes([
             'name' => $roleName,
-            'scope_type' => $this->scope?->getMorphClass(),
-            'scope_id' => $this->scope?->getKey(),
-            'is_global' => ! $this->scope instanceof Model,
             'is_system' => true,
-        ]);
+        ]));
     }
 
     /**
@@ -450,5 +444,20 @@ class AccessContext
         }
 
         return $role->scope_type === null && $role->scope_id === null;
+    }
+
+    /** @param array<string, mixed> $attributes
+     * @return array<string, mixed>
+     */
+    private function roleScopeAttributes(array $attributes): array
+    {
+        $scopeType = $this->scope?->getMorphClass();
+        $scopeId = $this->scope?->getKey();
+
+        return array_merge($attributes, [
+            'is_global' => $scopeType === null && $scopeId === null,
+            'scope_type' => $scopeType,
+            'scope_id' => $scopeId,
+        ]);
     }
 }
