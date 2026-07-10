@@ -1,6 +1,7 @@
 <?php
 
 use Maxiviper117\Access\Facades\Access;
+use Maxiviper117\Access\Models\Assignment;
 use Maxiviper117\Access\Models\Role;
 use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
@@ -126,4 +127,13 @@ it('supports HasAccess global trait helpers for removal and direct permissions',
 
     $user->removeGlobalRole('Manager');
     expect($user->hasGlobalRole('Manager'))->toBeFalse();
+});
+
+it('rejects malformed authorization assignments', function (): void {
+    $user = User::query()->create(['email' => 'david@example.com']);
+
+    expect(fn () => Assignment::query()->create([
+        'actor_type' => $user->getMorphClass(),
+        'actor_id' => $user->getKey(),
+    ]))->toThrow(InvalidArgumentException::class);
 });

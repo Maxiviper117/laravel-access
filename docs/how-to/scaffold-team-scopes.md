@@ -251,6 +251,8 @@ if ($user->in($company)->can(Permission::CompanyMembersInvite)) {
 
 For route protection, combine the generated scope membership middleware with Laravel Access permissions:
 
+The membership middleware and permission middleware are both required. Laravel Access verifies the permission for the resolved scope; the generated application middleware verifies that the authenticated user belongs to that scope.
+
 ```php:line-numbers
 Route::middleware(['auth', 'company'])
     ->prefix('{current_company}')

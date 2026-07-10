@@ -19,7 +19,15 @@ class Role extends Model
 {
     protected $table = 'access_roles';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'label',
+        'description',
+        'is_global',
+        'is_system',
+        'scope_type',
+        'scope_id',
+    ];
 
     protected $casts = [
         'is_global' => 'bool',

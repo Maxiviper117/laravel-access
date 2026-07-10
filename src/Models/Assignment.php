@@ -19,7 +19,14 @@ class Assignment extends Model
 {
     protected $table = 'access_assignments';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'actor_type',
+        'actor_id',
+        'role_id',
+        'permission_id',
+        'scope_type',
+        'scope_id',
+    ];
 
     /** @return MorphTo<Model, $this> */
     public function actor(): MorphTo
@@ -48,6 +55,16 @@ class Assignment extends Model
     #[\Override]
     protected static function booted(): void
     {
+        static::saving(function (self $assignment): void {
+            if (($assignment->role_id === null) === ($assignment->permission_id === null)) {
+                throw new \InvalidArgumentException('An assignment must reference exactly one role or permission.');
+            }
+
+            if (($assignment->scope_type === null) !== ($assignment->scope_id === null)) {
+                throw new \InvalidArgumentException('An assignment scope must include both scope_type and scope_id.');
+            }
+        });
+
         static::saved(fn (self $assignment) => app(AccessCache::class)->forgetForAssignment($assignment));
         static::deleted(fn (self $assignment) => app(AccessCache::class)->forgetForAssignment($assignment));
     }
