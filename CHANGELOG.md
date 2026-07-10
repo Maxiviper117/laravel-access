@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/Maxiviper117/laravel-access/compare/v0.1.2...v0.1.3) (2026-07-10)
+
+
+### Bug Fixes
+
+* Harden authorization record integrity ([#21](https://github.com/Maxiviper117/laravel-access/issues/21)) ([68b8399](https://github.com/Maxiviper117/laravel-access/commit/68b83995edaf01288b7fe24b783262502cd82a2c))
+* Improve access integrity ([#20](https://github.com/Maxiviper117/laravel-access/issues/20)) ([5911701](https://github.com/Maxiviper117/laravel-access/commit/5911701fc91981e74148cbe05ad572df3c9468f6))
+
 ## [0.1.2](https://github.com/Maxiviper117/laravel-access/compare/v0.1.1...v0.1.2) (2026-05-25)
 
 
