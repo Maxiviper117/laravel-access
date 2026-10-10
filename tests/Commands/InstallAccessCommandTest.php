@@ -25,6 +25,9 @@ it('publishes config and migrations when installing and inserts HasAccess trait 
     foreach (File::glob(database_path('migrations/*_create_access_table.php')) as $migrationPath) {
         File::delete($migrationPath);
     }
+    foreach (File::glob(database_path('migrations/*_add_global_access_uniqueness.php')) as $migrationPath) {
+        File::delete($migrationPath);
+    }
 
     // Create a stub User model
     File::ensureDirectoryExists(dirname($userPath));
@@ -48,6 +51,7 @@ PHP);
 
         expect($configPath)->toBeFile()
             ->and(File::glob(database_path('migrations/*_create_access_table.php')))->toHaveCount(1)
+            ->and(File::glob(database_path('migrations/*_add_global_access_uniqueness.php')))->toHaveCount(1)
             ->and($enumPath)->toBeFile()
             ->and(File::get($configPath))->toContain("'permission_enums' => [\\App\\Enums\\Permission::class]")
             ->and($createRolePath)->toBeFile()
@@ -71,6 +75,9 @@ PHP);
         File::deleteDirectory(app_path('Actions'));
 
         foreach (File::glob(database_path('migrations/*_create_access_table.php')) as $migrationPath) {
+            File::delete($migrationPath);
+        }
+        foreach (File::glob(database_path('migrations/*_add_global_access_uniqueness.php')) as $migrationPath) {
             File::delete($migrationPath);
         }
     }

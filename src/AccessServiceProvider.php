@@ -21,6 +21,7 @@ class AccessServiceProvider extends PackageServiceProvider
             ->name('laravel-access')
             ->hasConfigFile('access')
             ->hasMigration('create_access_table')
+            ->hasMigration('add_global_access_uniqueness')
             ->hasCommands([
                 InstallAccessCommand::class,
                 ScopeAccessCommand::class,
