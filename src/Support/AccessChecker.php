@@ -29,7 +29,7 @@ class AccessChecker
                     $permissions[] = $assignment->permission->name;
                 }
 
-                if ($assignment->role instanceof Role) {
+                if ($assignment->role instanceof Role && $this->roleMatchesScope($assignment->role, $scope)) {
                     array_push($permissions, ...$assignment->role->permissions->pluck('name')->all());
                 }
             }
@@ -41,5 +41,25 @@ class AccessChecker
     public function can(Model $actor, ?Model $scope, string $permission): bool
     {
         return in_array($permission, $this->permissionsFor($actor, $scope), true);
+    }
+
+    private function roleMatchesScope(Role $role, ?Model $scope): bool
+    {
+        if ($scope instanceof Model) {
+            if ($role->is_global) {
+                return false;
+            }
+
+            $scopeType = $scope->getMorphClass();
+            $scopeId = $scope->getKey();
+
+            if ($role->scope_type === null || $role->scope_id === null) {
+                return $role->scope_type === null && $role->scope_id === null;
+            }
+
+            return $role->scope_type === $scopeType && $role->scope_id == $scopeId;
+        }
+
+        return $role->scope_type === null && $role->scope_id === null && $role->is_global;
     }
 }
