@@ -71,6 +71,8 @@ actor_type, actor_id, permission_id, scope_type, scope_id
 
 This prevents duplicate assignments for the same actor and scope.
 
+The `add_global_access_uniqueness` migration adds database-generated keys so these constraints also cover global rows, whose scope columns are `null`. This prevents duplicate global role names and duplicate global role or direct permission assignments, including when concurrent requests attempt the same insert.
+
 ## Global Rows
 
 Global rows have no scope:
@@ -86,6 +88,15 @@ Scoped rows store both scope columns:
 scope_type = App\Models\Company
 scope_id = 1
 ```
+
+When upgrading an existing app, publish and run the new migration:
+
+```bash
+php artisan vendor:publish --tag=access-migrations
+php artisan migrate
+```
+
+The migration expects existing global role names and global assignments to be unique. If earlier concurrent writes created duplicates, resolve those rows before running the migration so the unique indexes can be created.
 
 ## Scope Scaffold Tables
 

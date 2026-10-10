@@ -52,5 +52,6 @@ class TestCase extends Orchestra
         });
 
         (include __DIR__.'/../database/migrations/create_access_table.php.stub')->up();
+        (include __DIR__.'/../database/migrations/add_global_access_uniqueness.php.stub')->up();
     }
 }
