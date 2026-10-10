@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/Maxiviper117/laravel-access/compare/v0.1.5...v0.1.6) (2026-10-10)
+
+
+### Bug Fixes
+
+* enforce uniqueness for global access records ([#31](https://github.com/Maxiviper117/laravel-access/issues/31)) ([214629b](https://github.com/Maxiviper117/laravel-access/commit/214629b3b610fa4b12dc52c6cfbdf0aefd92bf86))
+
 ## [0.1.5](https://github.com/Maxiviper117/laravel-access/compare/v0.1.4...v0.1.5) (2026-10-10)
 
 
