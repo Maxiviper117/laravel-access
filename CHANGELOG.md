@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/Maxiviper117/laravel-access/compare/v0.1.3...v0.1.4) (2026-10-10)
+
+
+### Bug Fixes
+
+* Enforce global and scoped role boundaries ([#24](https://github.com/Maxiviper117/laravel-access/issues/24)) ([f3d812c](https://github.com/Maxiviper117/laravel-access/commit/f3d812c289da481d1b12313ff6e970f7fa76979a))
+
 ## [0.1.3](https://github.com/Maxiviper117/laravel-access/compare/v0.1.2...v0.1.3) (2026-07-10)
 
 
