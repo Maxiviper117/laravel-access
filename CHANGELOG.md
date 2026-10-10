@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/Maxiviper117/laravel-access/compare/v0.1.4...v0.1.5) (2026-10-10)
+
+
+### Features
+
+* add global permission revoke helper ([#26](https://github.com/Maxiviper117/laravel-access/issues/26)) ([b213994](https://github.com/Maxiviper117/laravel-access/commit/b21399417ac24e2bb6cc2390272c58537aef501c))
+
 ## [0.1.4](https://github.com/Maxiviper117/laravel-access/compare/v0.1.3...v0.1.4) (2026-10-10)
 
 
