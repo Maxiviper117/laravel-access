@@ -56,4 +56,11 @@ trait HasAccess
 
         return $this;
     }
+
+    public function revokeGlobalPermission(BackedEnum|string $permission): self
+    {
+        $this->access()->revokePermission($permission);
+
+        return $this;
+    }
 }
