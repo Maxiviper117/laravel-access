@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/Maxiviper117/laravel-access/compare/v0.1.6...v0.1.7) (2026-10-10)
+
+
+### Bug Fixes
+
+* enforce role scope during permission checks ([#33](https://github.com/Maxiviper117/laravel-access/issues/33)) ([04e2812](https://github.com/Maxiviper117/laravel-access/commit/04e2812a7211406d00d09cebcd9edc15f01f73c3))
+
 ## [0.1.6](https://github.com/Maxiviper117/laravel-access/compare/v0.1.5...v0.1.6) (2026-10-10)
 
 
