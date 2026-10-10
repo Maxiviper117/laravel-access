@@ -41,6 +41,8 @@ $context = $user->in($company);
 
 All scoped checks and assignments are made through that context.
 
+Scoped contexts can use roles defined for that scope and shared non-global role definitions. Roles marked global are listed and assigned only through the global API.
+
 ### Role Methods
 
 `assignRole(BackedEnum|string|Role $role)`
@@ -54,6 +56,9 @@ All scoped checks and assignments are made through that context.
 
 `hasAnyRole(array $roles)`
 : Checks whether any listed role is assigned in the current scope. The array can contain `BackedEnum`, `string`, or `Role` instances.
+
+`roles()`
+: Lists roles available in the current context. A scoped context includes shared non-global roles and roles for its exact scope. A global context includes app-wide global roles.
 
 Role checks are available, but permission checks are preferred in policies.
 

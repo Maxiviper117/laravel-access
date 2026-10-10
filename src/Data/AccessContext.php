@@ -181,11 +181,15 @@ class AccessContext
         if ($this->scope instanceof Model) {
             $scope = $this->scope;
             $query->where(function ($q) use ($scope): void {
-                $q->where(fn ($sub) => $sub->where('scope_type', $scope->getMorphClass())->where('scope_id', $scope->getKey()))
-                    ->orWhere(fn ($sub) => $sub->whereNull('scope_type')->whereNull('scope_id'));
+                $q->where(fn ($sub) => $sub->where('scope_type', $scope->getMorphClass())
+                    ->where('scope_id', $scope->getKey())
+                    ->where('is_global', false))
+                    ->orWhere(fn ($sub) => $sub->whereNull('scope_type')
+                        ->whereNull('scope_id')
+                        ->where('is_global', false));
             });
         } else {
-            $query->whereNull('scope_type')->whereNull('scope_id');
+            $query->whereNull('scope_type')->whereNull('scope_id')->where('is_global', true);
         }
 
         return $query->get();
@@ -207,6 +211,7 @@ class AccessContext
                 ->where('name', $roleName)
                 ->where('scope_type', $this->scope->getMorphClass())
                 ->where('scope_id', $this->scope->getKey())
+                ->where('is_global', false)
                 ->first();
 
             if ($scopedRole) {
@@ -218,6 +223,7 @@ class AccessContext
             ->where('name', $roleName)
             ->whereNull('scope_type')
             ->whereNull('scope_id')
+            ->where('is_global', $this->scope instanceof Model ? false : true)
             ->first();
     }
 
@@ -389,18 +395,57 @@ class AccessContext
                 ->first();
 
             if ($scopedRole) {
+                if ($scopedRole->is_global) {
+                    throw new InvalidArgumentException('A global role cannot be assigned in a scoped context.');
+                }
+
                 return $scopedRole;
             }
+
+            $sharedRole = Role::query()
+                ->where('name', $roleName)
+                ->whereNull('scope_type')
+                ->whereNull('scope_id')
+                ->where('is_global', false)
+                ->first();
+
+            if ($sharedRole) {
+                return $sharedRole;
+            }
+
+            if (Role::query()
+                ->where('name', $roleName)
+                ->whereNull('scope_type')
+                ->whereNull('scope_id')
+                ->where('is_global', true)
+                ->exists()) {
+                throw new InvalidArgumentException('A global role cannot be assigned in a scoped context.');
+            }
+
+            return Role::query()->create($this->roleScopeAttributes([
+                'name' => $roleName,
+                'is_system' => true,
+            ]));
         }
 
         $globalRole = Role::query()
             ->where('name', $roleName)
             ->whereNull('scope_type')
             ->whereNull('scope_id')
+            ->where('is_global', true)
             ->first();
 
         if ($globalRole) {
             return $globalRole;
+        }
+
+        if (Role::query()
+            ->where('name', $roleName)
+            ->whereNull('scope_type')
+            ->whereNull('scope_id')
+            ->where('is_global', false)
+            ->exists()) {
+            throw new InvalidArgumentException('A non-global role cannot be assigned in a global context.');
         }
 
         return Role::query()->create($this->roleScopeAttributes([
@@ -433,6 +478,10 @@ class AccessContext
     private function roleMatchesCurrentScope(Role $role): bool
     {
         if ($this->scope instanceof Model) {
+            if ($role->is_global) {
+                return false;
+            }
+
             $scopeType = $this->scope->getMorphClass();
             $scopeId = $this->scope->getKey();
 
@@ -443,7 +492,7 @@ class AccessContext
             return $role->scope_type === $scopeType && $role->scope_id == $scopeId;
         }
 
-        return $role->scope_type === null && $role->scope_id === null;
+        return $role->scope_type === null && $role->scope_id === null && $role->is_global;
     }
 
     /** @param array<string, mixed> $attributes

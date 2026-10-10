@@ -161,8 +161,8 @@ it('protects system roles from deletion and modification', function (): void {
     expect(Role::query()->where('name', 'super-owner')->exists())->toBeTrue();
 
     // Attempting to modify a system role should throw exception
-    expect(function () use ($user, $company): void {
-        $user->in($company)->syncRolePermissions('super-owner', [Permission::UsersView]);
+    expect(function () use ($user): void {
+        $user->access()->syncRolePermissions('super-owner', [Permission::UsersView]);
     })->toThrow(InvalidArgumentException::class, 'Cannot modify system roles.');
 });
 

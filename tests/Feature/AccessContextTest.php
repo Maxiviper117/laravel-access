@@ -68,6 +68,49 @@ it('rejects role models that do not belong to the current scope', function (): v
         ->toThrow(InvalidArgumentException::class, 'The role does not belong to the current scope.');
 });
 
+it('lists only roles eligible for the current scope context', function (): void {
+    Access::role('Company Owner')->allows([Permission::UsersInvite]);
+    Access::role('Platform Admin', global: true)->allows([Permission::SystemManage]);
+
+    $user = User::query()->create(['email' => 'david@example.com']);
+    $company = Company::query()->create(['name' => 'Acme']);
+    $user->in($company)->createRole('Company Auditor');
+
+    $scopedRoles = $user->in($company)->roles()->pluck('name')->all();
+    $globalRoles = $user->access()->roles()->pluck('name')->all();
+
+    expect($scopedRoles)->toContain('Company Owner', 'Company Auditor')
+        ->and($scopedRoles)->not->toContain('Platform Admin')
+        ->and($globalRoles)->toContain('Platform Admin')
+        ->and($globalRoles)->not->toContain('Company Owner', 'Company Auditor');
+});
+
+it('rejects global roles assigned through a scoped context', function (): void {
+    $globalRole = Access::role('Platform Admin', global: true)->allows([Permission::SystemManage]);
+    $user = User::query()->create(['email' => 'david@example.com']);
+    $company = Company::query()->create(['name' => 'Acme']);
+    $context = $user->in($company);
+
+    expect(fn () => $context->assignRole('Platform Admin'))
+        ->toThrow(InvalidArgumentException::class)
+        ->and(fn () => $context->assignRole($globalRole))
+        ->toThrow(InvalidArgumentException::class)
+        ->and($context->hasRole('Platform Admin'))->toBeFalse()
+        ->and($context->can(Permission::SystemManage))->toBeFalse();
+});
+
+it('rejects shared scoped roles assigned through a global context', function (): void {
+    $scopedRole = Access::role('Company Owner')->allows([Permission::UsersInvite]);
+    $user = User::query()->create(['email' => 'david@example.com']);
+
+    expect(fn () => $user->assignGlobalRole('Company Owner'))
+        ->toThrow(InvalidArgumentException::class)
+        ->and(fn () => $user->access()->assignRole($scopedRole))
+        ->toThrow(InvalidArgumentException::class)
+        ->and($user->hasGlobalRole('Company Owner'))->toBeFalse()
+        ->and($user->canGlobally(Permission::UsersInvite))->toBeFalse();
+});
+
 it('can revoke direct permissions', function (): void {
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
