@@ -67,7 +67,26 @@ class Assignment extends Model
             }
         });
 
-        static::saved(fn (self $assignment) => app(AccessCache::class)->forgetForAssignment($assignment));
+        static::saved(function (self $assignment): void {
+            $cache = app(AccessCache::class);
+            $original = $assignment->getRawOriginal();
+
+            if (array_key_exists('actor_type', $original) && $assignment->isDirty([
+                'actor_type',
+                'actor_id',
+                'scope_type',
+                'scope_id',
+            ])) {
+                $cache->forgetForAssignmentIdentity(
+                    (string) $original['actor_type'],
+                    (string) $original['actor_id'],
+                    isset($original['scope_type']) ? (string) $original['scope_type'] : null,
+                    isset($original['scope_id']) ? (string) $original['scope_id'] : null,
+                );
+            }
+
+            $cache->forgetForAssignment($assignment);
+        });
         static::deleted(fn (self $assignment) => app(AccessCache::class)->forgetForAssignment($assignment));
     }
 }

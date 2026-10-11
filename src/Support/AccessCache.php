@@ -52,14 +52,33 @@ class AccessCache
             return;
         }
 
+        $this->forgetIdentity(
+            $assignment->actor_type,
+            (string) $assignment->actor_id,
+            $assignment->scope_type,
+            $assignment->scope_id === null ? null : (string) $assignment->scope_id,
+        );
+    }
+
+    public function forgetForAssignmentIdentity(string $actorType, string $actorId, ?string $scopeType, ?string $scopeId): void
+    {
+        if (! config('access.cache.enabled')) {
+            return;
+        }
+
+        $this->forgetIdentity($actorType, $actorId, $scopeType, $scopeId);
+    }
+
+    private function forgetIdentity(string $actorType, string $actorId, ?string $scopeType, ?string $scopeId): void
+    {
         Cache::forget(sprintf(
             '%s:%s:%s:%s:%s:%s',
             $this->baseKey(),
             $this->version(),
-            $assignment->actor_type,
-            (string) $assignment->actor_id,
-            $assignment->scope_type ?? 'global',
-            (string) ($assignment->scope_id ?? 'global'),
+            $actorType,
+            $actorId,
+            $scopeType ?? 'global',
+            $scopeId ?? 'global',
         ));
     }
 

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\DB;
 use Maxiviper117\Access\Facades\Access;
+use Maxiviper117\Access\Models\Assignment;
 use Maxiviper117\Access\Support\AccessCache;
 use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
@@ -65,6 +66,44 @@ it('invalidates cache when a permission is given or revoked', function (): void 
     $queries = 0;
     expect($user->in($company)->can(Permission::RolesManage))->toBeFalse();
     expect($queries)->toBeGreaterThan(0);
+});
+
+it('invalidates both actor contexts when an assignment changes actor', function (): void {
+    $oldActor = User::query()->create(['email' => 'old@example.com']);
+    $newActor = User::query()->create(['email' => 'new@example.com']);
+    $company = Company::query()->create(['name' => 'Acme']);
+
+    $oldActor->in($company)->givePermission(Permission::UsersInvite);
+
+    expect($oldActor->in($company)->can(Permission::UsersInvite))->toBeTrue()
+        ->and($newActor->in($company)->can(Permission::UsersInvite))->toBeFalse();
+
+    $assignment = Assignment::query()->where('actor_id', $oldActor->getKey())->firstOrFail();
+    $assignment->actor_type = $newActor->getMorphClass();
+    $assignment->actor_id = $newActor->getKey();
+    $assignment->save();
+
+    expect($oldActor->in($company)->can(Permission::UsersInvite))->toBeFalse()
+        ->and($newActor->in($company)->can(Permission::UsersInvite))->toBeTrue();
+});
+
+it('invalidates both scope contexts when an assignment changes scope', function (): void {
+    $user = User::query()->create(['email' => 'david@example.com']);
+    $oldScope = Company::query()->create(['name' => 'Acme']);
+    $newScope = Company::query()->create(['name' => 'Beta']);
+
+    $user->in($oldScope)->givePermission(Permission::UsersInvite);
+
+    expect($user->in($oldScope)->can(Permission::UsersInvite))->toBeTrue()
+        ->and($user->in($newScope)->can(Permission::UsersInvite))->toBeFalse();
+
+    $assignment = Assignment::query()->where('actor_id', $user->getKey())->firstOrFail();
+    $assignment->scope_type = $newScope->getMorphClass();
+    $assignment->scope_id = $newScope->getKey();
+    $assignment->save();
+
+    expect($user->in($oldScope)->can(Permission::UsersInvite))->toBeFalse()
+        ->and($user->in($newScope)->can(Permission::UsersInvite))->toBeTrue();
 });
 
 it('invalidates cache when a role is assigned or removed', function (): void {
