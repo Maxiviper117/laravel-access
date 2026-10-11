@@ -942,6 +942,9 @@ PHP;
         $notificationFacadeImport = $n['notifications']
             ? "use Illuminate\\Support\\Facades\\Notification;\n"
             : '';
+        $invitationRoleImports = $n['notifications']
+            ? "use App\\Enums\\{$n['studly']}Role;\nuse Illuminate\\Validation\\Rule;\n"
+            : '';
         $responseType = $n['frontend'] !== 'blade'
             ? 'View|InertiaResponse|RedirectResponse|SymfonyResponse'
             : 'View|RedirectResponse|SymfonyResponse';
@@ -953,7 +956,7 @@ PHP;
 
 namespace App\Http\Controllers\Auth;
 
-{$notificationImport}use App\Models\\{$n['studly']};
+{$invitationRoleImports}{$notificationImport}use App\Models\\{$n['studly']};
 use App\Models\\{$n['studly']}Invitation;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -1239,8 +1242,12 @@ PHP;
     {
         \$validated = \$request->validate([
             'email' => ['required', 'email'],
-            'role' => ['required', 'string'],
+            'role' => ['required', Rule::enum({$n['studly']}Role::class)],
         ]);
+
+        \$inviterRole = \$request->user()->{$n['camel']}Role(\${$n['camel']});
+        \$requestedRole = {$n['studly']}Role::from(\$validated['role']);
+        abort_if(! \$inviterRole || \$requestedRole->level() > \$inviterRole->level(), 403);
 
         \$invitation = \${$n['camel']}->invitations()->create([
             'email' => \$validated['email'],
