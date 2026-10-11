@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.8](https://github.com/Maxiviper117/laravel-access/compare/v0.1.7...v0.1.8) (2026-10-11)
+
+
+### Bug Fixes
+
+* Enforce existing-user invitation policy ([#36](https://github.com/Maxiviper117/laravel-access/issues/36)) ([58481f8](https://github.com/Maxiviper117/laravel-access/commit/58481f8fb3710b72ec717af2a2855fde825a658a))
+* Invalidate old permission cache after assignment changes ([#38](https://github.com/Maxiviper117/laravel-access/issues/38)) ([f2c6e3f](https://github.com/Maxiviper117/laravel-access/commit/f2c6e3f9eb054956a3f7ceb744c7f6fbd573cca1))
+* Prevent scope admins from inviting higher roles ([#35](https://github.com/Maxiviper117/laravel-access/issues/35)) ([e6e4672](https://github.com/Maxiviper117/laravel-access/commit/e6e4672cdca86e2cd38e30f363a30939bf4bcf0f))
+
 ## [0.1.7](https://github.com/Maxiviper117/laravel-access/compare/v0.1.6...v0.1.7) (2026-10-10)
 
 
