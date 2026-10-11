@@ -472,11 +472,11 @@ If you generated notification helpers, the command also adds a protected invitat
 
 ```php:line-numbers
 Route::post('{company:slug}/invitations', [CompanyInvitationController::class, 'store'])
-    ->middleware(['auth', 'company:Admin'])
+    ->middleware(['auth', 'company:Admin', 'access:company.members.invite,company'])
     ->name('company.invitations.store');
 ```
 
-Customize `CompanyInvitationNotification`, the `store` validation rules, and middleware before exposing this endpoint to users.
+Configure the scoped `company.members.invite` permission through Laravel Access and assign it to Laravel Access roles that may invite members. The generated `company:Admin` middleware separately requires app-owned Admin membership. Customize `CompanyInvitationNotification` and the `store` validation rules before exposing this endpoint to users.
 
 The generated middleware resolves `{current_company}`, checks membership, and updates `users.current_company_id`. The generated `AppServiceProvider` URL defaults let `route('dashboard')` include the current company slug automatically.
 
@@ -527,9 +527,11 @@ The generated route is:
 
 ```php:line-numbers
 Route::post('{company:slug}/invitations', [CompanyInvitationController::class, 'store'])
-    ->middleware(['auth', 'company:Admin'])
+    ->middleware(['auth', 'company:Admin', 'access:company.members.invite,company'])
     ->name('company.invitations.store');
 ```
+
+The route requires both app-owned Admin membership and the scoped `company.members.invite` permission from Laravel Access. Configure that permission and assign it to the Laravel Access roles that should be allowed to send invitations.
 
 A simple invite form can post to that route:
 
