@@ -1,9 +1,11 @@
 <?php
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Maxiviper117\Access\Facades\Access;
 use Maxiviper117\Access\Models\Assignment;
 use Maxiviper117\Access\Support\AccessCache;
+use Maxiviper117\Access\Support\AccessChecker;
 use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 use Maxiviper117\Access\Tests\Fixtures\User;
@@ -33,6 +35,85 @@ it('caches permission checks on subsequent calls', function (): void {
     // Check again - should hit cache and not make any DB queries
     expect($user->in($company)->can(Permission::UsersInvite))->toBeTrue();
     expect($queries)->toBe(0);
+});
+
+it('keeps colon-containing actor and scope identities separate in the permission cache', function (): void {
+    $actorA = new class extends Model
+    {
+        public function getMorphClass(): string
+        {
+            return 'x:1';
+        }
+    };
+    $actorA->setAttribute($actorA->getKeyName(), 2);
+
+    $actorB = new class extends Model
+    {
+        public function getMorphClass(): string
+        {
+            return 'x';
+        }
+    };
+    $actorB->setAttribute($actorB->getKeyName(), 1);
+
+    $scopeA = new class extends Model
+    {
+        public function getMorphClass(): string
+        {
+            return 'y';
+        }
+    };
+    $scopeA->setAttribute($scopeA->getKeyName(), 3);
+
+    $scopeB = new class extends Model
+    {
+        public function getMorphClass(): string
+        {
+            return '2:y';
+        }
+    };
+    $scopeB->setAttribute($scopeB->getKeyName(), 3);
+
+    $permission = Maxiviper117\Access\Models\Permission::query()->create([
+        'name' => Permission::UsersInvite->value,
+    ]);
+
+    $assignment = Assignment::query()->create([
+        'actor_type' => $actorA->getMorphClass(),
+        'actor_id' => $actorA->getKey(),
+        'scope_type' => $scopeA->getMorphClass(),
+        'scope_id' => $scopeA->getKey(),
+        'permission_id' => $permission->getKey(),
+    ]);
+
+    $checker = app(AccessChecker::class);
+
+    // The first identity has an assignment. The other tuple serializes to the same old colon key.
+    expect($checker->can($actorA, $scopeA, Permission::UsersInvite->value))->toBeTrue()
+        ->and($checker->can($actorB, $scopeB, Permission::UsersInvite->value))->toBeFalse();
+
+    $assignment->delete();
+
+    expect($checker->can($actorA, $scopeA, Permission::UsersInvite->value))->toBeFalse()
+        ->and($checker->can($actorB, $scopeB, Permission::UsersInvite->value))->toBeFalse();
+
+    Assignment::query()->create([
+        'actor_type' => $actorA->getMorphClass(),
+        'actor_id' => $actorA->getKey(),
+        'permission_id' => $permission->getKey(),
+    ]);
+
+    $globalAliasScope = new class extends Model
+    {
+        public function getMorphClass(): string
+        {
+            return 'global';
+        }
+    };
+    $globalAliasScope->setAttribute($globalAliasScope->getKeyName(), 'global');
+
+    expect($checker->can($actorA, null, Permission::UsersInvite->value))->toBeTrue()
+        ->and($checker->can($actorA, $globalAliasScope, Permission::UsersInvite->value))->toBeFalse();
 });
 
 it('invalidates cache when a permission is given or revoked', function (): void {
