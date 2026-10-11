@@ -71,18 +71,30 @@ class Assignment extends Model
             $cache = app(AccessCache::class);
             $original = $assignment->getRawOriginal();
 
-            if (array_key_exists('actor_type', $original) && $assignment->isDirty([
+            if ($assignment->isDirty([
                 'actor_type',
                 'actor_id',
                 'scope_type',
                 'scope_id',
             ])) {
-                $cache->forgetForAssignmentIdentity(
-                    (string) $original['actor_type'],
-                    (string) $original['actor_id'],
-                    isset($original['scope_type']) ? (string) $original['scope_type'] : null,
-                    isset($original['scope_id']) ? (string) $original['scope_id'] : null,
-                );
+                $actorType = $original['actor_type'] ?? null;
+                $actorId = $original['actor_id'] ?? null;
+                $scopeType = $original['scope_type'] ?? null;
+                $scopeId = $original['scope_id'] ?? null;
+
+                if (
+                    is_string($actorType)
+                    && (is_int($actorId) || (is_string($actorId) && ctype_digit($actorId)))
+                ) {
+                    if ($scopeType === null && $scopeId === null) {
+                        $cache->forgetForAssignmentIdentity($actorType, (string) $actorId, null, null);
+                    } elseif (
+                        is_string($scopeType)
+                        && (is_int($scopeId) || (is_string($scopeId) && ctype_digit($scopeId)))
+                    ) {
+                        $cache->forgetForAssignmentIdentity($actorType, (string) $actorId, $scopeType, (string) $scopeId);
+                    }
+                }
             }
 
             $cache->forgetForAssignment($assignment);
