@@ -1004,6 +1004,10 @@ class {$n['studly']}InvitationController extends Controller
             return \$response;
         }
 
+        if (config('access.invitations.require_existing_user', false)) {
+            return redirect()->route('{$n['singular']}.invitations.show', \$invitation);
+        }
+
         return \$this->renderRegisterForm(\$invitation);
     }
 
@@ -1095,6 +1099,11 @@ PHP
         if ($response = $this->invalidInvitationResponse($invitation)) {
             return $response;
         }
+PHP
+            ."\n        if (config('access.invitations.require_existing_user', false)) {\n".
+             "            return redirect()->route('{$n['singular']}.invitations.show', \$invitation);\n".
+             "        }\n\n".
+            <<<'PHP'
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
