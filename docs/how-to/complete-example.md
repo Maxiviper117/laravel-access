@@ -601,6 +601,8 @@ The frontend receives a simple permission map:
 
 Create users, a company, membership rows, and scoped access assignments. Membership and authorization are separate writes.
 
+This example creates demo users with the fixed password `password` and is for local development only. Do not use these credentials or this seeder in production; use existing trusted, app-provisioned account lookups as shown in [Seed roles and permissions](/how-to/seed-roles-and-permissions).
+
 ```php:line-numbers
 namespace Database\Seeders;
 

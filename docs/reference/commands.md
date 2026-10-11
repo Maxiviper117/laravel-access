@@ -104,7 +104,7 @@ Options:
 `--force`
 : Overwrites an existing seeder.
 
-The generated seeder is intentionally a starting point. It creates a demo owner and scope, writes the app-owned membership pivot, assigns the scoped Laravel Access role with `$user->in($scope)->assignRole(...)`, and switches the user's current scope. Run `access:sync` before running assignment seeders so configured roles exist in the database.
+The generated seeder is intentionally a starting point. It looks up an existing owner using a reserved `.invalid` email placeholder, creates a demo scope, writes the app-owned membership pivot, assigns the scoped Laravel Access role with `$user->in($scope)->assignRole(...)`, and switches the user's current scope. Replace the placeholder with an existing trusted, app-provisioned account before running the seeder. It does not create the owner account or set credentials. Run `access:sync` before running assignment seeders so configured roles exist in the database.
 
 ## `access:sync`
 

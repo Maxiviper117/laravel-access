@@ -34,7 +34,7 @@ class AccessSeederCommand extends Command
         $files->put($path, $this->seeder($class, $names));
 
         $this->info("Generated {$this->relativePath($path)}.");
-        $this->line("Next steps: review the demo user, {$names['singular']}, and role names, then run php artisan access:sync before db:seed.");
+        $this->line("Next steps: replace the owner email placeholder with an existing trusted account, review the {$names['singular']} and role names, then run php artisan access:sync before db:seed.");
 
         return self::SUCCESS;
     }
@@ -108,20 +108,13 @@ use App\Enums\\{$n['studly']}Role;
 use App\Models\\{$n['studly']};
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class {$class} extends Seeder
 {
     public function run(): void
     {
-        // Replace these demo records with the users and {$n['plural']} your app should start with.
-        \$owner = User::query()->firstOrCreate(
-            ['email' => 'owner@example.com'],
-            [
-                'name' => 'Owner',
-                'password' => Hash::make('password'),
-            ],
-        );
+        // Replace this placeholder with an existing trusted, app-provisioned owner account.
+        \$owner = User::query()->where('email', 'replace-with-existing-owner@example.invalid')->firstOrFail();
 
         \${$n['camel']} = {$n['studly']}::query()->firstOrCreate(
             ['slug' => '{$n['slug']}'],

@@ -113,7 +113,7 @@ Seed both app membership and Laravel Access assignment when using the `access:sc
 php artisan access:seeder --name=company --class=DemoCompanySeeder
 ```
 
-That command generates an editable starter seeder. The core shape should stay the same:
+That command generates an editable starter seeder with an owner lookup placeholder. Replace it with the email of an existing trusted account provisioned by your app before running the seeder. The core shape should stay the same:
 
 ```php:line-numbers
 namespace Database\Seeders;
@@ -127,10 +127,8 @@ class DemoCompanySeeder extends Seeder
 {
     public function run(): void
     {
-        $owner = User::query()->firstOrCreate(
-            ['email' => 'owner@example.com'],
-            ['name' => 'Owner', 'password' => bcrypt('password')]
-        );
+        // Replace this reserved placeholder with an existing trusted, app-provisioned owner account.
+        $owner = User::query()->where('email', 'replace-with-existing-owner@example.invalid')->firstOrFail();
 
         $company = Company::query()->firstOrCreate(
             ['slug' => 'acme-corp'],
@@ -195,10 +193,8 @@ class DemoAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::query()->firstOrCreate(
-            ['email' => 'admin@example.com'],
-            ['name' => 'Admin', 'password' => bcrypt('password')]
-        );
+        // Replace this reserved placeholder with an existing trusted, app-provisioned admin account.
+        $admin = User::query()->where('email', 'replace-with-existing-admin@example.invalid')->firstOrFail();
 
         $admin->assignGlobalRole('Admin');
     }
@@ -231,13 +227,13 @@ php artisan access:sync --prune
 
 Seeders should be safe to run more than once:
 
-- Use `firstOrCreate` or `updateOrCreate` for users and scopes.
+- Use existing trusted, app-provisioned account lookups for users, and `firstOrCreate` or `updateOrCreate` for scopes.
 - Use `syncWithoutDetaching` for generated membership pivots.
 - Use `assignRole` or `assignGlobalRole` repeatedly instead of manually inserting assignment rows.
 - Do not use raw IDs for scopes in reusable seeders.
 - Run `access:sync` before assignment seeders so role and permission definitions exist.
 
-A typical `DatabaseSeeder` order is:
+A typical `DatabaseSeeder` order is shown below. Configure every `.invalid` email placeholder in the assignment seeders first; only app-provisioned accounts that are trusted to hold these roles should receive assignments.
 
 ```php:line-numbers
 public function run(): void
@@ -249,7 +245,7 @@ public function run(): void
 }
 ```
 
-Run sync before the database seeder in deployment scripts:
+After configuring those placeholders to identify existing trusted app accounts, run sync before the database seeder in deployment scripts. The deployment seeder must never create an Owner or Admin account from fixed credentials:
 
 ```bash
 php artisan migrate --force
