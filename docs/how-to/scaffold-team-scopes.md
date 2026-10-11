@@ -318,6 +318,8 @@ $user->in($company)->assignRole(CompanyRole::Admin);
 
 The first line makes the user a company member. The second line gives the user Laravel Access permissions inside that company.
 
+For the security boundaries between membership and permissions, and guidance for generated invitation routes, see [Authorization Boundaries](/explanation/authorization-boundaries).
+
 You can keep membership roles and access roles in sync, or let them diverge. For most apps, using the same enum values (`CompanyRole::Owner->value`, `CompanyRole::Admin->value`, `CompanyRole::Member->value`) keeps the model simple and avoids string drift.
 
 For policies, keep the same pattern:

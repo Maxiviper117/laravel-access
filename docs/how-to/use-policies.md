@@ -59,3 +59,5 @@ public function update(User $user, Company $company): bool
 ```
 
 The permission answers whether the user has the broad ability. The policy can still decide whether that ability applies to this particular model state.
+
+For a checklist of scope, membership, and global access boundaries, see [Authorization Boundaries](/explanation/authorization-boundaries).

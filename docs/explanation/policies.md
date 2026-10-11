@@ -47,3 +47,5 @@ Use middleware for simple route-level checks where the route parameter is enough
 ```
 
 Use frontend permission maps only to shape the interface.
+
+For common authorization mistakes, including the difference between membership and permissions, see [Authorization Boundaries](/explanation/authorization-boundaries).

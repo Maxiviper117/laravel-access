@@ -212,6 +212,8 @@ class RolePolicy
 }
 ```
 
+For the related scope and membership checks to apply in your other policies, see [Authorization Boundaries](/explanation/authorization-boundaries).
+
 ---
 
 ## 7. Coexistence with `access:sync`
