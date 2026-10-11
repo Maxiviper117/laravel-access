@@ -123,12 +123,12 @@ Options:
 : Reports changes without writing to the database.
 
 `--prune`
-: Deletes stale permissions and roles after confirmation.
+: Deletes stale system-owned permissions and roles after confirmation. Runtime-created permissions and roles are retained.
 
 `--force`
 : Skips confirmation when pruning.
 
-`access:sync` syncs definitions from config into the database. It does not assign roles to users. Assign scoped roles with `$user->in($scope)->assignRole(...)` and global roles with `$user->assignGlobalRole(...)`. See [Seed roles and permissions](/how-to/seed-roles-and-permissions).
+`access:sync` syncs definitions from config into the database. It does not assign roles to users. Configured definitions are marked as system-owned; dynamic permission definitions are not pruned. Assign scoped roles with `$user->in($scope)->assignRole(...)` and global roles with `$user->assignGlobalRole(...)`. See [Seed roles and permissions](/how-to/seed-roles-and-permissions) and [Dynamic Permission Definitions](/how-to/define-permissions).
 
 ## `access:clear`
 

@@ -35,6 +35,12 @@ class RoleRegistrar
             ->map(fn (BackedEnum|string $permission): string => app(PermissionNormalizer::class)->normalize($permission))
             ->map(function (string $name): int {
                 $permission = Permission::query()->firstOrCreate(['name' => $name]);
+
+                if (! $permission->is_system) {
+                    $permission->is_system = true;
+                    $permission->save();
+                }
+
                 $key = $permission->getKey();
 
                 return is_scalar($key) ? (int) $key : 0;

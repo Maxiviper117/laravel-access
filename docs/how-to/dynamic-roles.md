@@ -218,12 +218,14 @@ For the related scope and membership checks to apply in your other policies, see
 
 ## 7. Coexistence with `access:sync`
 
-Running the developer command `php artisan access:sync` keeps all developer-defined permissions and config roles in sync with your database. 
+Running the developer command `php artisan access:sync` keeps all developer-defined permissions and config roles in sync with your database.
 
-It is designed to be **safe for dynamic roles**:
-* Configured system roles are synced and marked as `is_system = true`.
-* When using the `--prune` option, the sync command **only prunes developer-defined roles** (where `is_system = true`).
-* All dynamic, user-created roles (`is_system = false`) are left completely untouched in the database.
+It is designed to preserve runtime definitions:
+* Configured roles and permissions are marked as `is_system = true`.
+* When using `--prune`, the command only deletes stale roles and permissions marked as system-owned.
+* Dynamic roles and permissions (`is_system = false`) remain in the database. Permission definitions are app-wide; their grants can be scoped or global.
+
+Use [Dynamic Permission Definitions](/how-to/define-permissions) when app administrators need to add permission names at runtime. Existing dynamic-role APIs can also create a definition automatically when given a new string permission name.
 
 ---
 

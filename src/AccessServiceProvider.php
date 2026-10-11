@@ -22,6 +22,7 @@ class AccessServiceProvider extends PackageServiceProvider
             ->hasConfigFile('access')
             ->hasMigration('create_access_table')
             ->hasMigration('add_global_access_uniqueness')
+            ->hasMigration('add_permission_ownership')
             ->hasCommands([
                 InstallAccessCommand::class,
                 ScopeAccessCommand::class,
