@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.9](https://github.com/Maxiviper117/laravel-access/compare/v0.1.8...v0.1.9) (2026-10-11)
+
+
+### Bug Fixes
+
+* **cache:** prevent permission cache identity collisions ([#43](https://github.com/Maxiviper117/laravel-access/issues/43)) ([79a4d68](https://github.com/Maxiviper117/laravel-access/commit/79a4d68b87ba7a50d0b2efce46239a0d0abc24c3))
+* **scope:** enforce scoped permission for generated invites ([#42](https://github.com/Maxiviper117/laravel-access/issues/42)) ([ba0deb5](https://github.com/Maxiviper117/laravel-access/commit/ba0deb5a1a1960846fd1808093dc5d3001b90ad0))
+* **seeder:** require existing owner for generated seeders ([#46](https://github.com/Maxiviper117/laravel-access/issues/46)) ([e6d2eb7](https://github.com/Maxiviper117/laravel-access/commit/e6d2eb7949db505ed5daede4933e77d6d6bb43f6))
+
 ## [0.1.8](https://github.com/Maxiviper117/laravel-access/compare/v0.1.7...v0.1.8) (2026-10-11)
 
 
