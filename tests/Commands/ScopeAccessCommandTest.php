@@ -196,6 +196,49 @@ it('can scaffold invitation notification helpers', function (): void {
     }
 });
 
+it('blocks generated invitation registration endpoints when existing users are required', function (): void {
+    cleanScopeScaffold();
+
+    try {
+        $this->artisan('access:scope --name=company --no-concern')
+            ->assertSuccessful();
+
+        $controller = File::get(app_path('Http/Controllers/Auth/CompanyInvitationController.php'));
+        $registerFormStart = strpos($controller, 'public function registerForm(');
+        $renderErrorStart = strpos($controller, 'private function renderInvitationError(');
+        $registerStart = strpos($controller, 'public function register(Request');
+        $acceptStart = strpos($controller, 'public function accept(Request');
+
+        expect($registerFormStart)->not->toBeFalse()
+            ->and($renderErrorStart)->not->toBeFalse()
+            ->and($registerStart)->not->toBeFalse()
+            ->and($acceptStart)->not->toBeFalse();
+
+        $registerForm = substr($controller, $registerFormStart, $renderErrorStart - $registerFormStart);
+        $register = substr($controller, $registerStart, $acceptStart - $registerStart);
+
+        foreach ([
+            [$registerForm, 'return $this->renderRegisterForm($invitation);'],
+            [$register, '$user = User::create(['],
+        ] as [$handler, $sensitiveAction]) {
+            $invalidCheck = strpos($handler, '$this->invalidInvitationResponse($invitation)');
+            $policyCheck = strpos($handler, "if (config('access.invitations.require_existing_user', false)) {");
+            $redirect = strpos($handler, 'redirect()->route(\'company.invitations.show\', $invitation)');
+            $action = strpos($handler, $sensitiveAction);
+
+            expect($invalidCheck)->not->toBeFalse()
+                ->and($policyCheck)->not->toBeFalse()
+                ->and($redirect)->not->toBeFalse()
+                ->and($action)->not->toBeFalse()
+                ->and($invalidCheck)->toBeLessThan($policyCheck)
+                ->and($policyCheck)->toBeLessThan($redirect)
+                ->and($redirect)->toBeLessThan($action);
+        }
+    } finally {
+        cleanScopeScaffold();
+    }
+});
+
 it('enforces the generated scope role ceiling for invitations', function (): void {
     cleanScopeScaffold();
 
