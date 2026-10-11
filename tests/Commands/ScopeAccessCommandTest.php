@@ -196,6 +196,26 @@ it('can scaffold invitation notification helpers', function (): void {
     }
 });
 
+it('enforces the generated scope role ceiling for invitations', function (): void {
+    cleanScopeScaffold();
+
+    try {
+        $this->artisan('access:scope --name=workspace --notifications --no-concern')
+            ->assertSuccessful();
+
+        expect(File::get(app_path('Http/Controllers/Auth/WorkspaceInvitationController.php')))
+            ->toContain('use App\\Enums\\WorkspaceRole;')
+            ->toContain('use Illuminate\\Validation\\Rule;')
+            ->toContain("'role' => ['required', Rule::enum(WorkspaceRole::class)],")
+            ->toContain('$inviterRole = $request->user()->workspaceRole($workspace);')
+            ->toContain('$requestedRole = WorkspaceRole::from($validated[\'role\']);')
+            ->toContain('abort_if(! $inviterRole || $requestedRole->level() > $inviterRole->level(), 403);')
+            ->toContain("'role' => \$validated['role'],");
+    } finally {
+        cleanScopeScaffold();
+    }
+});
+
 it('can scaffold inertia react invitation pages', function (): void {
     cleanScopeScaffold();
 
