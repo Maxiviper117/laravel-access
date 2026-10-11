@@ -26,6 +26,13 @@ Core ideas:
 - Keep generated scaffold code deterministic and easy for application developers to edit after publishing.
 - Keep this `AGENTS.md` up to date when code, commands, architecture, or documentation workflows change.
 
+## Pull Request Rules
+
+- Before creating a pull request, use a lowercase Conventional Commit title with one of the types accepted by `.github/workflows/pr-title.yml`: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, or `test`.
+- Use the form `<type>(optional-scope): <description>`. A `!` may follow the type or scope to mark a breaking change. Confirm the `Validate PR title` check passes after opening or editing the pull request.
+- Complete `.github/pull_request_template.md` with a detailed, self-contained description. Explain the problem and context, the behavior or files changed, the relevant user or security impact and boundaries, and the verification performed with results. State known limitations and checks not run when applicable.
+- For stacked pull requests, explain the dependency and review order in the body.
+
 ## No Fallbacks
 
 Never add fallbacks, never think about legacy fallbacks, and do not worry about breaking changes unless explicitly told. Do not add extra code, checks, branches, compatibility layers, or migration paths that were not explicitly requested.
