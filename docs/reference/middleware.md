@@ -15,6 +15,8 @@ The first argument is the permission name. The second argument is the route para
 
 Policies are still recommended for object-specific authorization. Middleware is useful for simple route-level checks.
 
+Middleware does not replace application-specific membership or record ownership checks. See [Authorization Boundaries](/explanation/authorization-boundaries).
+
 ## Signature
 
 ```text:line-numbers

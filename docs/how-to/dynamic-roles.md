@@ -191,7 +191,8 @@ class RolePolicy
             return false;
         }
 
-        return $role->scope_id === $scope->getKey()
+        return $role->scope_type === $scope->getMorphClass()
+            && (int) $role->scope_id === (int) $scope->getKey()
             && $user->in($scope)->can(Permission::RolesManage);
     }
 
@@ -204,11 +205,14 @@ class RolePolicy
             return false;
         }
 
-        return $role->scope_id === $scope->getKey()
+        return $role->scope_type === $scope->getMorphClass()
+            && (int) $role->scope_id === (int) $scope->getKey()
             && $user->in($scope)->can(Permission::RolesManage);
     }
 }
 ```
+
+For the related scope and membership checks to apply in your other policies, see [Authorization Boundaries](/explanation/authorization-boundaries).
 
 ---
 

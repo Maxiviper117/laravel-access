@@ -34,6 +34,7 @@ export default defineConfig({
         text: 'Explanation',
         items: [
           { text: 'Mental model', link: '/explanation/mental-model' },
+          { text: 'Authorization boundaries', link: '/explanation/authorization-boundaries' },
           { text: 'Scopes', link: '/explanation/scopes' },
           { text: 'Policies', link: '/explanation/policies' },
           { text: 'Caching', link: '/explanation/caching' },

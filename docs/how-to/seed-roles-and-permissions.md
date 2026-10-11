@@ -159,6 +159,8 @@ $owner->in($company)->assignRole(CompanyRole::Owner);
 
 The first line says the user belongs to the company. The second line says what the user may do in that company.
 
+For guidance on scoped assignments and other common authorization mistakes, see [Authorization Boundaries](/explanation/authorization-boundaries).
+
 ## Global-Only Apps
 
 In global-only apps, leave `default_scope_model` as `null`, leave `roles` empty, and put app-wide roles in `global_roles`.
