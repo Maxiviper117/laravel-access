@@ -71,28 +71,31 @@ class AccessCache
 
     private function forgetIdentity(string $actorType, string $actorId, ?string $scopeType, ?string $scopeId): void
     {
-        Cache::forget(sprintf(
-            '%s:%s:%s:%s:%s:%s',
-            $this->baseKey(),
-            $this->version(),
-            $actorType,
-            $actorId,
-            $scopeType ?? 'global',
-            $scopeId ?? 'global',
-        ));
+        Cache::forget($this->identityKey($actorType, $actorId, $scopeType, $scopeId));
     }
 
     private function key(Model $actor, ?Model $scope): string
     {
-        return sprintf(
-            '%s:%s:%s:%s:%s:%s',
+        return $this->identityKey(
+            (string) $actor->getMorphClass(),
+            is_scalar($actor->getKey()) || is_null($actor->getKey()) ? (string) $actor->getKey() : '',
+            $scope instanceof Model ? (string) $scope->getMorphClass() : null,
+            $scope instanceof Model && (is_scalar($scope->getKey()) || is_null($scope->getKey()))
+                ? (string) $scope->getKey()
+                : ($scope instanceof Model ? 'global' : null),
+        );
+    }
+
+    private function identityKey(string $actorType, string $actorId, ?string $scopeType, ?string $scopeId): string
+    {
+        return hash('sha256', serialize([
             $this->baseKey(),
             $this->version(),
-            $actor->getMorphClass(),
-            (is_scalar($actor->getKey()) || is_null($actor->getKey()) ? (string) $actor->getKey() : ''),
-            $scope?->getMorphClass() ?? 'global',
-            $scope instanceof Model && (is_scalar($scope->getKey()) || is_null($scope->getKey())) ? (string) $scope->getKey() : 'global',
-        );
+            $actorType,
+            $actorId,
+            $scopeType,
+            $scopeId,
+        ]));
     }
 
     private function baseKey(): string
