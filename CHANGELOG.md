@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/Maxiviper117/laravel-access/compare/v0.1.9...v0.1.10) (2026-10-11)
+
+
+### Features
+
+* **access:** support dynamic permission definitions ([#49](https://github.com/Maxiviper117/laravel-access/issues/49)) ([b3f6d05](https://github.com/Maxiviper117/laravel-access/commit/b3f6d057e4989fecc7b05b62c1d8bc85cc300d96))
+
 ## [0.1.9](https://github.com/Maxiviper117/laravel-access/compare/v0.1.8...v0.1.9) (2026-10-11)
 
 
