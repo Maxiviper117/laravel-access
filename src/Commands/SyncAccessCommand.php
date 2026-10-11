@@ -30,8 +30,17 @@ class SyncAccessCommand extends Command
             },
             Permission::query()->pluck('name')->all(),
         );
+        $systemPermissionNames = array_map(
+            fn ($v): string => match (true) {
+                is_string($v) => $v,
+                is_scalar($v) || is_null($v) => (string) $v,
+                default => '',
+            },
+            Permission::query()->where('is_system', true)->pluck('name')->all(),
+        );
         $missingPermissions = array_values(array_diff($permissionNames, $existingPermissionNames));
-        $stalePermissions = array_values(array_diff($existingPermissionNames, $permissionNames));
+        $permissionsToMarkAsSystem = array_values(array_intersect($permissionNames, array_diff($existingPermissionNames, $systemPermissionNames)));
+        $stalePermissions = array_values(array_diff($systemPermissionNames, $permissionNames));
         $systemRolesQuery = Role::query()->where('is_system', true)->whereNull('scope_type')->whereNull('scope_id');
         $systemRolesInDb = array_map(
             fn ($v): string => match (true) {
@@ -46,7 +55,8 @@ class SyncAccessCommand extends Command
         $staleRoles = array_values(array_diff($systemRolesInDb, $configuredRoles));
 
         $this->report('Permissions will be created', $missingPermissions);
-        $this->report('Permissions not configured', $stalePermissions);
+        $this->report('Permissions will be marked as system-defined', $permissionsToMarkAsSystem);
+        $this->report('Stale system permissions', $stalePermissions);
         $this->report('Roles will be created', $missingRoles);
         $this->report('Roles not configured', $staleRoles);
 
@@ -55,7 +65,12 @@ class SyncAccessCommand extends Command
         }
 
         foreach ($permissionNames as $name) {
-            Permission::query()->firstOrCreate(['name' => $name]);
+            $permission = Permission::query()->firstOrCreate(['name' => $name]);
+
+            if (! $permission->is_system) {
+                $permission->is_system = true;
+                $permission->save();
+            }
         }
 
         foreach ($roleMap as $roleName => $permissions) {
@@ -83,7 +98,7 @@ class SyncAccessCommand extends Command
         }
 
         if ($this->option('prune') && ($this->option('force') || $this->confirm('Delete stale permissions and roles?'))) {
-            Permission::query()->whereIn('name', $stalePermissions)->delete();
+            Permission::query()->where('is_system', true)->whereIn('name', $stalePermissions)->delete();
             Role::query()
                 ->where('is_system', true)
                 ->whereNull('scope_type')

@@ -4,8 +4,11 @@ namespace Maxiviper117\Access;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
+use InvalidArgumentException;
 use Maxiviper117\Access\Data\AccessContext;
+use Maxiviper117\Access\Models\Permission;
 use Maxiviper117\Access\Models\Role;
+use Maxiviper117\Access\Support\PermissionNormalizer;
 use Maxiviper117\Access\Support\RoleRegistrar;
 
 class Access
@@ -18,6 +21,25 @@ class Access
     public function role(string $name, bool $global = false): RoleRegistrar
     {
         return new RoleRegistrar($name, $global);
+    }
+
+    public function definePermission(string $name, ?string $label = null, ?string $description = null): Permission
+    {
+        $name = app(PermissionNormalizer::class)->normalize($name);
+        $permission = Permission::query()->firstOrCreate(
+            ['name' => $name],
+            ['label' => $label, 'description' => $description],
+        );
+
+        if ($permission->is_system) {
+            throw new InvalidArgumentException("The [{$name}] permission is defined by application configuration and cannot be redefined dynamically.");
+        }
+
+        $permission->label = $label;
+        $permission->description = $description;
+        $permission->save();
+
+        return $permission;
     }
 
     public function defineScopedGates(string $permissionEnum, string $scopeClass): void

@@ -75,6 +75,7 @@ Keep these distinctions clear in code and docs:
 - `roles`: scoped role definitions, assigned with `$user->in($scope)->assignRole(...)`.
 - `global_roles`: app-wide role definitions, assigned with `$user->assignGlobalRole(...)`.
 - `access:sync`: syncs permission and role definitions. It does not assign roles to users.
+- Permission definitions are app-wide. Configured definitions are system-owned; runtime definitions are retained by `access:sync --prune`.
 - Generated membership tables from `access:scope` are app state, not Laravel Access authorization tables.
 - App membership and Laravel Access role assignment are separate writes.
 

@@ -36,7 +36,7 @@ Sync it:
 php artisan access:sync
 ```
 
-The sync command creates missing database rows and reports stale permissions before deleting anything.
+The sync command creates missing database rows and reports stale system-owned permissions before deleting anything.
 
 `access:sync` syncs definitions only. It does not assign roles to users. After syncing, use scoped assignments such as `$user->in($company)->assignRole(...)` or global assignments such as `$user->assignGlobalRole(...)` in your application code or seeders.
 
@@ -51,6 +51,26 @@ For modular apps, list more enums:
 ```
 
 Every enum in `permission_enums` is synced.
+
+## Dynamic Permission Definitions
+
+When app administrators need to create permissions at runtime, define them with a stable string name. Permission definitions are app-wide; a definition can later be assigned directly or attached to a scoped or global role.
+
+```php:line-numbers
+use Maxiviper117\Access\Facades\Access;
+
+$permission = Access::definePermission(
+    'invoices.export',
+    'Export invoices',
+    'Download invoice data.',
+);
+```
+
+This creates or updates a dynamic definition and its label and description. It does not grant the permission to anyone. Grant it separately through the scoped or global assignment APIs, or attach it to a role. Protect the app endpoint that manages definitions and grants with your own authorization policy.
+
+The permission name is a unique, stable key. Renaming it creates a different permission. Dynamic definitions created this way, or by the string-based role and assignment APIs, are retained by `access:sync --prune`. That command only prunes stale definitions marked as system-owned by configuration. If a dynamic name already belongs to a configured permission, `definePermission` throws instead of changing the configured definition.
+
+Revoking a direct assignment or removing a permission from a role only removes that grant; it keeps the definition available for future use. Deleting a dynamic `Permission` model is rejected while it has direct assignments or role attachments. Remove those links first if the app intentionally retires the definition. Use model deletion for this check; bulk query-builder deletes bypass Eloquent model events.
 
 ## Naming Guidelines
 
@@ -90,7 +110,7 @@ Run a dry run first:
 php artisan access:sync --dry-run
 ```
 
-If a permission is no longer in the enum, the command reports it as stale. Delete stale records only when you are sure nothing needs them:
+If a system-owned permission is no longer in the enum or configured roles, the command reports it as stale. Dynamic permission definitions are not reported or deleted by `--prune`. Delete stale system-owned records only when you are sure nothing needs them:
 
 ```bash
 php artisan access:sync --prune
