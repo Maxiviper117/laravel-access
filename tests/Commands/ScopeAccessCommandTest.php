@@ -187,7 +187,7 @@ it('can scaffold invitation notification helpers', function (): void {
 
         expect(File::get(base_path('routes/company-invitations.php')))
             ->toContain("Route::post('{company:slug}/invitations'")
-            ->toContain("->middleware(['auth', 'company:Admin'])");
+            ->toContain("->middleware(['auth', 'company:Admin', 'access:company.members.invite,company'])");
 
         expect(File::get(app_path('Notifications/CompanyInvitationNotification.php')))
             ->toContain("route('company.invitations.show', \$this->invitation)");

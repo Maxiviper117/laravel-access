@@ -1286,7 +1286,7 @@ PHP;
     private function routes(array $n): string
     {
         $storeRoute = $n['notifications']
-            ? "Route::post('{{$n['singular']}:slug}/invitations', [{$n['studly']}InvitationController::class, 'store'])->middleware(['auth', '{$n['singular']}:Admin'])->name('{$n['singular']}.invitations.store');\n"
+            ? "Route::post('{{$n['singular']}:slug}/invitations', [{$n['studly']}InvitationController::class, 'store'])->middleware(['auth', '{$n['singular']}:Admin', 'access:{$n['singular']}.members.invite,{$n['singular']}'])->name('{$n['singular']}.invitations.store');\n"
             : '';
 
         return <<<PHP
