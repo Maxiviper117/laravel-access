@@ -1,21 +1,32 @@
-# Dynamic Roles (Hybrid RBAC)
+# Dynamic Roles and Permissions (Hybrid RBAC)
 
-Laravel Access uses an **Enum-First, Code-Driven** paradigm. Developers define permissions strictly in code using PHP Backed Enums. This guarantees type-safety, IDE autocomplete, and clean static analysis.
+Laravel Access supports developer-defined permissions and roles, plus permissions and roles that an application creates at runtime.
 
-However, in many B2B or SaaS applications, you need to allow **end-users (e.g. Workspace Admins) to create custom roles** (like "Assistant Manager" or "Night Shift Staff") and choose which permissions those roles have.
+Use backed enums for permissions that developers define in code. Use dynamic permission definitions when application administrators must add permission names at runtime. Dynamic role APIs let an application create roles and attach either kind of permission to them.
 
-Laravel Access handles this elegantly using a **Hybrid RBAC Model**:
-1. **Static Permissions (Enums)**: Defined by developers in PHP code.
-2. **Dynamic Roles (Database)**: Created and customized by end-users at runtime.
+The package provides the database models and APIs. Your application provides the administration UI and authorizes who can create permissions, edit roles, and assign roles.
+
+The model has three parts:
+
+1. **Configured permissions**: Defined by developers, usually with backed enums listed in `permission_enums`.
+2. **Dynamic permissions**: Defined at runtime by stable string names. Permission definitions are app-wide. Their grants can be direct or through scoped and global roles.
+3. **Dynamic roles**: Created at runtime and stored in the database. A role can be scoped to a model instance or global to the application.
 
 ---
 
-## 1. The Dynamic Roles Schema
+## 1. Role and Permission Ownership
 
-To support user-created roles, your `access_roles` table includes fields to track whether a role is developer-defined or user-defined, and what tenant/scope model it belongs to:
+The `access_roles` table stores role ownership and scope:
 
-* `is_system` (boolean): `true` for system-wide roles defined in `config/access.php`, `false` for user-created custom roles.
-* `scope_type` / `scope_id`: Populated if a role is created specifically within a scoped tenant model (e.g., a specific Workspace or Team).
+* `is_system`: `true` for configured roles and `false` for roles created at runtime.
+* `is_global`: `true` for app-wide roles and `false` for scoped or shared non-global roles.
+* `scope_type` and `scope_id`: Set when a role belongs to a specific model instance, such as one Workspace or Team.
+
+The `access_permissions` table stores permission definitions for the whole application:
+
+* Configured permissions are system-owned. `access:sync` marks them with `is_system = true`.
+* Runtime definitions are dynamic. The package keeps them when `access:sync --prune` removes stale system-owned definitions.
+* A permission definition does not grant access by itself. A direct assignment or a role attachment grants access in a scope or globally.
 
 ---
 
@@ -24,11 +35,17 @@ To support user-created roles, your `access_roles` table includes fields to trac
 To allow a tenant administrator to create a custom role within their scope, use the scoped `createRole` method on the user context. The library automatically scopes the role, sets `is_system => false`, and sets `is_global => false`:
 
 > [!NOTE]
-> In all of the examples below, the `$scope` variable refers to a concrete instance of your application's scoped tenant model (for example, a `Workspace`, `Team`, or `Company` instance).
+> In these examples, `$scope` is a model instance from your application, such as a `Workspace`, `Team`, or `Company`.
 
 ```php:line-numbers
 // Create the role within the specific scope using a string name
 $role = $user->in($scope)->createRole('editor-assistant', 'Editor Assistant', 'Help with editing articles');
+```
+
+The role belongs to `$scope`. A custom global role has no scope. Create one with the global context:
+
+```php:line-numbers
+$role = $user->access()->createRole('support-agent', 'Support Agent');
 ```
 
 You can also pass a `BackedEnum` as the role name. The enum's `value` is used as the role name:
@@ -41,11 +58,60 @@ $role = $user->in($scope)->createRole(CompanyRole::Admin, 'Company Admin');
 
 ---
 
-## 3. Syncing & Editing Permissions of a Scoped Role
+## 3. Defining a Dynamic Permission
 
-Present your tenant administrators with a checkbox list of the static **System Permissions** defined in your enum. When they save their role, sync the pivot mappings using `syncRolePermissions`. 
+Use `Access::definePermission()` when an application administrator must create a permission at runtime and set its label or description. Use a stable string name. Permission definitions are app-wide, even when a role or direct grant is scoped.
 
-While standard strings are fully supported, using a PHP Backed Enum is highly recommended:
+```php:line-numbers
+use Maxiviper117\Access\Facades\Access;
+
+$permission = Access::definePermission(
+    'invoices.export',
+    'Export invoices',
+    'Download invoice data.',
+);
+```
+
+This call creates or updates the definition. It does not grant the permission. Permission strings passed to `givePermission()`, `giveGlobalPermission()`, `syncRolePermissions()`, or `addPermissionToRole()` can create a missing definition automatically. These methods do not set its label or description. Use `definePermission()` when the application needs that metadata.
+
+If the name already belongs to a configured permission, `definePermission()` throws an exception. See [Define Permissions](/how-to/define-permissions) for naming, ownership, and removal details.
+
+### Complete Scoped Example
+
+This example defines a permission, adds it to a custom role, assigns the role, and checks access:
+
+```php:line-numbers
+use Maxiviper117\Access\Facades\Access;
+
+$permission = Access::definePermission(
+    'invoices.export',
+    'Export invoices',
+    'Download invoice data.',
+);
+
+$companyAdmin->in($scope)->createRole(
+    'invoice-manager',
+    'Invoice Manager',
+);
+$companyAdmin->in($scope)->addPermissionToRole(
+    'invoice-manager',
+    $permission->name,
+);
+
+$accountant->in($scope)->assignRole('invoice-manager');
+
+$accountant->in($scope)->can('invoices.export'); // true
+```
+
+The application must authorize the administrator before it calls these APIs. The package does not decide which application users can manage permission definitions or roles.
+
+The same app-wide permission can be attached to a global role or granted directly. For example, use `$user->access()->addPermissionToRole('support-agent', 'invoices.export')` for a global role, or `$user->giveGlobalPermission('invoices.export')` for a direct global grant.
+
+---
+
+## 4. Syncing and Editing Role Permissions
+
+Use `syncRolePermissions()` to replace the full set of permissions attached to a role. Permission values can be backed enums or strings. Use enums for configured permissions and strings for dynamic definitions:
 
 ```php:line-numbers
 use App\Enums\Permission;
@@ -53,8 +119,11 @@ use App\Enums\Permission;
 $user->in($scope)->syncRolePermissions('editor-assistant', [
     Permission::PostCreate,
     Permission::PostEdit,
+    'invoices.export',
 ]);
 ```
+
+The string `'invoices.export'` can refer to a definition created with `Access::definePermission()`. If the definition does not exist, this API creates it with the name only.
 
 You can also reference a role by its `BackedEnum` value when the role name matches an enum case:
 
@@ -70,28 +139,30 @@ $user->in($scope)->syncRolePermissions(CompanyRole::Admin, [
 
 ### Adding & Removing Individual Permissions
 
-Alternatively, if you want to add or remove individual permissions from a role dynamically without replacing the entire list, use `addPermissionToRole` and `removePermissionFromRole`:
+Use `addPermissionToRole()` and `removePermissionFromRole()` to change one permission without replacing the full list. These methods also accept dynamic permission names:
 
 ```php:line-numbers
 use App\Enums\Permission;
 
-// Add a single permission to a dynamic role
+// Add a configured permission
 $user->in($scope)->addPermissionToRole('editor-assistant', Permission::PostCreate);
 
-// Remove a single permission from a dynamic role
-$user->in($scope)->removePermissionFromRole('editor-assistant', Permission::PostCreate);
+// Add or remove a dynamic permission
+$user->in($scope)->addPermissionToRole('editor-assistant', 'invoices.export');
+$user->in($scope)->removePermissionFromRole('editor-assistant', 'invoices.export');
+
 ```
 
 
 ---
 
-## 4. Assigning and Checking Access
+## 5. Assigning and Checking Access
 
 Checking user access with scoped roles is identical to checking static roles. Laravel Access resolves the mappings dynamically at runtime.
 
-### Recommended: Backed Enums
+### Configured Permissions and Roles
 
-For all developer-defined roles, using PHP Backed Enums is highly recommended for IDE autocompletion, type safety, and clean static analysis:
+Use backed enums for configured role names and permissions:
 
 ```php:line-numbers
 use App\Enums\CompanyRole;
@@ -105,34 +176,46 @@ if ($user->in($scope)->hasRole(CompanyRole::Admin)) {
 }
 ```
 
-### Supported: Strings for Runtime User-Created Roles
+### Dynamic Role Names and Permissions
 
-If a custom role is created dynamically by an end-user at runtime (where no compile-time PHP enum exists), you can pass its standard string name instead:
+Use string names for roles and permissions created at runtime:
 
 ```php:line-numbers
-// Assign the dynamically created role by string name
-$user->in($scope)->assignRole('custom-role-name');
+// Assign the dynamic role and check its assignment
+$user->in($scope)->assignRole('invoice-manager');
 
-// Check the dynamic role assignment
-if ($user->in($scope)->hasRole('custom-role-name')) {
+if ($user->in($scope)->hasRole('invoice-manager')) {
     // ...
+}
+
+// Check a configured or dynamic permission
+if ($user->in($scope)->can('invoices.export')) {
+    // Allow the invoice export.
 }
 ```
 
-### Checking Permissions (Recommended)
+### Check Permissions in Policies
 
-In B2B apps, you should check permissions instead of roles in your policies and controllers. This ensures that even if a tenant admin changes the permissions of the `editor-assistant` role, your authorization logic remains 100% correct:
+Check permissions instead of role names in policies and controllers. The role's grants can change without changing the permission check in application code:
 
 ```php:line-numbers
-// Check the permission (automatically resolves through the custom role mapping)
+// Check a configured enum permission
 if ($user->in($scope)->can(Permission::PostCreate)) {
-    // Authorized!
+    // Allow the action.
+}
+```
+
+For a dynamic permission, pass its string name:
+
+```php:line-numbers
+if ($user->in($scope)->can('invoices.export')) {
+    // Allow the invoice export.
 }
 ```
 
 ---
 
-## 5. Listing and Deleting Dynamic Roles
+## 6. Listing and Deleting Dynamic Roles
 
 To retrieve the applicable roles inside the current scope (including both system roles and custom workspace-specific roles), call `roles()`:
 
@@ -158,9 +241,9 @@ $user->in($scope)->deleteRole(CompanyRole::Admin);
 
 ---
 
-## 6. Protecting Dynamic Role Administration
+## 7. Protecting Role and Permission Administration
 
-To authorize users to create/edit roles, you should define a static **meta-permission** in your enum, e.g. `Permission::RolesManage`.
+Use a configured permission, such as `Permission::RolesManage`, to protect endpoints that create permissions, edit roles, and assign roles. Keep this management permission in application code. A dynamic permission should not be the only permission used to authorize its own creation.
 
 You can then write standard Laravel **Model Policies** to protect your role administration endpoints:
 
@@ -216,7 +299,7 @@ For the related scope and membership checks to apply in your other policies, see
 
 ---
 
-## 7. Coexistence with `access:sync`
+## 8. Coexistence with `access:sync`
 
 Running the developer command `php artisan access:sync` keeps all developer-defined permissions and config roles in sync with your database.
 
@@ -229,7 +312,7 @@ Use [Dynamic Permission Definitions](/how-to/define-permissions) when app admini
 
 ---
 
-## 8. Dynamic Role Actions (Action Pattern)
+## 9. Dynamic Role Actions (Action Pattern)
 
 When you run `php artisan access:install`, Laravel Access automatically scaffolds five reusable, standalone Action classes in your project under the `App\Actions\Access` namespace:
 * `CreateRole`
@@ -282,7 +365,7 @@ $role = CreateRole::run(
 
 #### Syncing Permissions to a Role
 
-Use `SyncRolePermissions::run()` to map developer-defined enum permissions onto custom roles. The `role` argument accepts a `BackedEnum`, `string`, or `Role` model instance:
+Use `SyncRolePermissions::run()` to replace the permissions attached to a custom role. The `role` argument accepts a `BackedEnum`, `string`, or `Role` model instance. The permission list accepts configured enums and dynamic strings:
 
 ```php:line-numbers
 use App\Actions\Access\SyncRolePermissions;
@@ -293,6 +376,7 @@ SyncRolePermissions::run(
     permissions: [
         Permission::PostCreate,
         Permission::PostEdit,
+        'invoices.export',
     ],
     scope: $scope
 );
@@ -300,15 +384,13 @@ SyncRolePermissions::run(
 
 #### Adding a Single Permission to a Role
 
-Use `AddPermissionToRole::run()` to add a single permission to a dynamic role:
+Use `AddPermissionToRole::run()` to add a configured or dynamic permission to a role:
 
 ```php:line-numbers
 use App\Actions\Access\AddPermissionToRole;
-use App\Enums\Permission;
-
 AddPermissionToRole::run(
     role: 'editor-assistant',
-    permission: Permission::PostCreate,
+    permission: 'invoices.export',
     scope: $scope
 );
 ```
