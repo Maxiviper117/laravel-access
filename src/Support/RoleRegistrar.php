@@ -3,6 +3,7 @@
 namespace Maxiviper117\Access\Support;
 
 use BackedEnum;
+use Maxiviper117\Access\Contracts\DescribesPermission;
 use Maxiviper117\Access\Models\Permission;
 use Maxiviper117\Access\Models\Role;
 
@@ -32,16 +33,15 @@ class RoleRegistrar
         ]);
 
         $ids = collect($permissions)
-            ->map(fn (BackedEnum|string $permission): string => app(PermissionNormalizer::class)->normalize($permission))
-            ->map(function (string $name): int {
-                $permission = Permission::query()->firstOrCreate(['name' => $name]);
+            ->map(function (BackedEnum|string $permission): int {
+                $name = app(PermissionNormalizer::class)->normalize($permission);
+                $permissionRecord = Permission::query()->firstOrCreate(['name' => $name]);
 
-                if (! $permission->is_system) {
-                    $permission->is_system = true;
-                    $permission->save();
-                }
+                $permissionRecord->is_system = true;
+                $permissionRecord->setMetadata($permission instanceof DescribesPermission ? $permission->metadata() : null);
+                $permissionRecord->save();
 
-                $key = $permission->getKey();
+                $key = $permissionRecord->getKey();
 
                 return is_scalar($key) ? (int) $key : 0;
             })
