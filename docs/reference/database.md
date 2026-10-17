@@ -16,11 +16,17 @@ name
 label
 description
 is_system
+resource
+kind
+target
+ability
 created_at
 updated_at
 ```
 
 `is_system` is `true` for definitions declared in `permission_enums`, `roles`, or `global_roles`. Runtime-created permission definitions use `false`. `access:sync --prune` only removes stale system-owned definitions.
+
+The nullable `resource`, `kind`, `target`, and `ability` columns hold optional permission metadata for discovery and administration. `kind` is `resource` or `field`; `target` is null for a whole-resource permission and identifies the field for a field permission. Rows without metadata leave all four columns null. These values do not affect authorization, which continues to use the exact permission `name`.
 
 ## `access_roles`
 
@@ -101,6 +107,8 @@ php artisan migrate
 ```
 
 The permission ownership migration defaults existing permission rows to `is_system = false` so unknown rows are preserved. The next `access:sync` marks definitions still declared in config as system-owned. Definitions that were removed from config before this migration cannot be identified automatically; review and remove any such old rows explicitly if needed.
+
+The permission metadata migration adds the four nullable metadata columns. Existing permission rows remain unclassified until their enum definition or dynamic registration supplies metadata.
 
 The migration expects existing global role names and global assignments to be unique. If earlier concurrent writes created duplicates, resolve those rows before running the migration so the unique indexes can be created.
 

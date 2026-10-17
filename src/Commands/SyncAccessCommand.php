@@ -4,6 +4,9 @@ namespace Maxiviper117\Access\Commands;
 
 use BackedEnum;
 use Illuminate\Console\Command;
+use InvalidArgumentException;
+use Maxiviper117\Access\Contracts\DescribesPermission;
+use Maxiviper117\Access\Data\PermissionMetadata;
 use Maxiviper117\Access\Models\Permission;
 use Maxiviper117\Access\Models\Role;
 use Maxiviper117\Access\Support\AccessCache;
@@ -17,30 +20,25 @@ class SyncAccessCommand extends Command
 
     public function handle(PermissionNormalizer $normalizer, AccessCache $cache): int
     {
-        $permissionNames = $this->configuredPermissionNames($normalizer);
+        $permissionMetadata = $this->configuredPermissionMetadata($normalizer);
+        $permissionNames = array_keys($permissionMetadata);
         $roleMap = $this->configuredRoles($normalizer);
         $configuredRoles = array_keys($roleMap);
         $dryRun = (bool) $this->option('dry-run');
 
-        $existingPermissionNames = array_map(
-            fn ($v): string => match (true) {
-                is_string($v) => $v,
-                is_scalar($v) || is_null($v) => (string) $v,
-                default => '',
-            },
-            Permission::query()->pluck('name')->all(),
-        );
-        $systemPermissionNames = array_map(
-            fn ($v): string => match (true) {
-                is_string($v) => $v,
-                is_scalar($v) || is_null($v) => (string) $v,
-                default => '',
-            },
-            Permission::query()->where('is_system', true)->pluck('name')->all(),
-        );
+        $existingPermissions = Permission::query()
+            ->get(['name', 'is_system', 'resource', 'kind', 'target', 'ability'])
+            ->keyBy('name');
+        $existingPermissionNames = $existingPermissions->keys()->map(fn ($name): string => (string) $name)->all();
+        $systemPermissionNames = $existingPermissions
+            ->filter(fn (Permission $permission): bool => $permission->is_system)
+            ->keys()
+            ->map(fn ($name): string => (string) $name)
+            ->all();
         $missingPermissions = array_values(array_diff($permissionNames, $existingPermissionNames));
         $permissionsToMarkAsSystem = array_values(array_intersect($permissionNames, array_diff($existingPermissionNames, $systemPermissionNames)));
         $stalePermissions = array_values(array_diff($systemPermissionNames, $permissionNames));
+        $metadataChanges = $this->permissionsWithChangedMetadata($permissionMetadata, $existingPermissions->all());
         $systemRolesQuery = Role::query()->where('is_system', true)->whereNull('scope_type')->whereNull('scope_id');
         $systemRolesInDb = array_map(
             fn ($v): string => match (true) {
@@ -56,6 +54,7 @@ class SyncAccessCommand extends Command
 
         $this->report('Permissions will be created', $missingPermissions);
         $this->report('Permissions will be marked as system-defined', $permissionsToMarkAsSystem);
+        $this->report('Permission metadata will change', $metadataChanges);
         $this->report('Stale system permissions', $stalePermissions);
         $this->report('Roles will be created', $missingRoles);
         $this->report('Roles not configured', $staleRoles);
@@ -67,10 +66,9 @@ class SyncAccessCommand extends Command
         foreach ($permissionNames as $name) {
             $permission = Permission::query()->firstOrCreate(['name' => $name]);
 
-            if (! $permission->is_system) {
-                $permission->is_system = true;
-                $permission->save();
-            }
+            $permission->is_system = true;
+            $permission->setMetadata($permissionMetadata[$name]);
+            $permission->save();
         }
 
         foreach ($roleMap as $roleName => $permissions) {
@@ -113,10 +111,11 @@ class SyncAccessCommand extends Command
         return self::SUCCESS;
     }
 
-    /** @return array<int, string> */
-    private function configuredPermissionNames(PermissionNormalizer $normalizer): array
+    /** @return array<string, PermissionMetadata|null> */
+    private function configuredPermissionMetadata(PermissionNormalizer $normalizer): array
     {
         $permissions = [];
+
         foreach ((array) config('access.permission_enums', []) as $enum) {
             if (! is_string($enum)) {
                 continue;
@@ -126,16 +125,73 @@ class SyncAccessCommand extends Command
             }
             foreach ($enum::cases() as $case) {
                 if ($case instanceof BackedEnum) {
-                    $permissions[] = $normalizer->normalize($case);
+                    $this->addEnumPermissionMetadata($permissions, $case, $normalizer);
                 }
             }
         }
 
-        foreach ($this->configuredRoles($normalizer) as $rolePermissions) {
-            array_push($permissions, ...$rolePermissions);
+        foreach (array_merge((array) config('access.roles', []), (array) config('access.global_roles', [])) as $rolePermissions) {
+            foreach ((array) $rolePermissions as $permission) {
+                if ($permission instanceof BackedEnum) {
+                    $this->addEnumPermissionMetadata($permissions, $permission, $normalizer);
+                } elseif (is_string($permission)) {
+                    $name = $normalizer->normalize($permission);
+                    $permissions[$name] ??= null;
+                }
+            }
         }
 
-        return array_values(array_unique($permissions));
+        return $permissions;
+    }
+
+    /**
+     * @param  array<string, PermissionMetadata|null>  $permissions
+     */
+    private function addEnumPermissionMetadata(array &$permissions, BackedEnum $permission, PermissionNormalizer $normalizer): void
+    {
+        $name = $normalizer->normalize($permission);
+        $metadata = $permission instanceof DescribesPermission ? $permission->metadata() : null;
+
+        if (array_key_exists($name, $permissions) && $this->metadataValues($permissions[$name]) !== $this->metadataValues($metadata)) {
+            throw new InvalidArgumentException("Conflicting metadata is configured for the [{$name}] permission.");
+        }
+
+        $permissions[$name] = $metadata;
+    }
+
+    /** @return array{resource: string|null, kind: string|null, target: string|null, ability: string|null} */
+    private function metadataValues(?PermissionMetadata $metadata): array
+    {
+        return $metadata?->toArray() ?? [
+            'resource' => null,
+            'kind' => null,
+            'target' => null,
+            'ability' => null,
+        ];
+    }
+
+    /**
+     * @param  array<string, PermissionMetadata|null>  $configuredMetadata
+     * @param  array<array-key, Permission>  $existingPermissions
+     * @return array<int, string>
+     */
+    private function permissionsWithChangedMetadata(array $configuredMetadata, array $existingPermissions): array
+    {
+        $changed = [];
+
+        foreach ($configuredMetadata as $name => $metadata) {
+            $existing = $existingPermissions[$name] ?? null;
+
+            if ($existing === null && $metadata === null) {
+                continue;
+            }
+
+            if ($existing === null || $existing->only(['resource', 'kind', 'target', 'ability']) !== $this->metadataValues($metadata)) {
+                $changed[] = $name;
+            }
+        }
+
+        return $changed;
     }
 
     /** @return array<string, array<int, string>> */
