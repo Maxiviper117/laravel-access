@@ -79,6 +79,7 @@ Keep these distinctions clear in code and docs:
 - `access:sync`: syncs permission and role definitions. It does not assign roles to users.
 - Permission definitions are app-wide. Configured definitions are system-owned; runtime definitions are retained by `access:sync --prune`.
 - `access:sync` applies static enum metadata deterministically and reports metadata changes during `--dry-run`.
+- Code-defined role registration preserves permission metadata for strings and enums without `DescribesPermission`; describing enum cases replace it, including with `null`.
 - Permission metadata is optional and does not grant access or change how permission names are checked.
 - Generated membership tables from `access:scope` are app state, not Laravel Access authorization tables.
 - App membership and Laravel Access role assignment are separate writes.

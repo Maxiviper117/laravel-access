@@ -38,6 +38,16 @@ enum Permission: string implements DescribesPermission
 
 Metadata is optional catalog information for discovery and structured administration. Use `resource()` for a whole resource or `field()` for a field on a resource. The enum can return `null` for permissions that do not need classification. Metadata does not affect authorization; permission checks continue to use the enum's exact backed value.
 
+The package does not infer metadata from the permission name or verify that the two agree. Resource and field are the supported classifications. Leave other permissions unclassified when neither fits.
+
+Field metadata does not hide fields or enforce access. Check the exact permission before returning or updating a field:
+
+```php:line-numbers
+if ($user->in($company)->can(Permission::UserEmailView)) {
+    $data['email'] = $member->email;
+}
+```
+
 Admin screens can filter the registered definitions directly:
 
 ```php:line-numbers
@@ -67,6 +77,8 @@ php artisan access:sync
 The sync command creates missing database rows, applies enum metadata, and reports metadata changes and stale system-owned permissions before deleting anything. Enum cases referenced by configured roles can also provide metadata. Code-defined roles registered with `Access::role(...)->allows(...)` can carry metadata through enum cases that implement `DescribesPermission`.
 
 Permission names supplied only as raw strings in role configuration remain valid and unclassified. Represent a permission as an enum case when it needs structured metadata.
+
+Sync treats configured enum metadata as authoritative, including `null`, and marks configured permission names as system-owned. If a dynamic definition becomes configured, sync replaces its metadata. Code-defined role registration also marks referenced permissions as system-owned. It applies metadata from cases implementing `DescribesPermission`; a string or an enum without that contract leaves existing metadata unchanged. If multiple registrations describe the same name, the last registration supplies its metadata. Sync rejects conflicting configured enum descriptions.
 
 `access:sync` syncs definitions only. It does not assign roles to users. After syncing, use scoped assignments such as `$user->in($company)->assignRole(...)` or global assignments such as `$user->assignGlobalRole(...)` in your application code or seeders.
 
@@ -98,7 +110,7 @@ $permission = Access::definePermission(
 );
 ```
 
-This creates or updates a dynamic definition, its label and description, and its metadata. Omitting metadata clears any existing metadata on that dynamic definition. It does not grant the permission to anyone. Grant it separately through the scoped or global assignment APIs, or attach it to a role. Protect the app endpoint that manages definitions and grants with your own authorization policy.
+This creates or replaces a dynamic definition, its label and description, and its metadata. Each call replaces all three optional values. Omitting metadata clears existing metadata, so pass it again when updating another field. It does not grant the permission to anyone. Grant it separately through the scoped or global assignment APIs, or attach it to a role. Protect the app endpoint that manages definitions and grants with your own authorization policy.
 
 The permission name is a unique, stable key. Renaming it creates a different permission. Dynamic definitions created this way, or by the string-based role and assignment APIs, are retained by `access:sync --prune`. That command only prunes stale definitions marked as system-owned by configuration. If a dynamic name already belongs to a configured permission, `definePermission` throws instead of changing the configured definition.
 

@@ -63,6 +63,40 @@ it('writes enum metadata when registering a code-defined role', function (): voi
         ->and($permission->ability)->toBe('view');
 });
 
+it('preserves permission metadata when a role references its name', function (): void {
+    $permission = Access::definePermission(
+        'invoices.export',
+        metadata: PermissionMetadata::resource('invoices', 'export'),
+    );
+
+    Access::role('Invoice Analyst')->allows(['invoices.export']);
+
+    expect($permission->fresh()->resource)->toBe('invoices')
+        ->and($permission->fresh()->kind)->toBe('resource')
+        ->and($permission->fresh()->ability)->toBe('export');
+});
+
+it('preserves synced metadata when a role references its name', function (): void {
+    config()->set('access.permission_enums', [StructuredPermission::class]);
+    $this->artisan('access:sync')->assertSuccessful();
+
+    Access::role('Invoice Analyst')->allows(['invoices.view']);
+
+    $permission = Permission::query()->where('name', 'invoices.view')->firstOrFail();
+    expect($permission->resource)->toBe('invoices')
+        ->and($permission->kind)->toBe('resource')
+        ->and($permission->ability)->toBe('view');
+});
+
+it('preserves metadata when a role references an enum without metadata', function (): void {
+    $permission = Access::definePermission('users.view', metadata: PermissionMetadata::resource('users', 'view'));
+
+    Access::role('Viewer')->allows([PermissionEnum::UsersView]);
+
+    expect($permission->fresh()->resource)->toBe('users')
+        ->and($permission->fresh()->ability)->toBe('view');
+});
+
 it('rejects empty metadata identifiers', function (): void {
     expect(fn () => PermissionMetadata::field('invoices', ' ', 'view'))
         ->toThrow(InvalidArgumentException::class, 'Permission metadata target cannot be empty.');

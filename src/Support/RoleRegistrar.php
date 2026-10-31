@@ -38,7 +38,9 @@ class RoleRegistrar
                 $permissionRecord = Permission::query()->firstOrCreate(['name' => $name]);
 
                 $permissionRecord->is_system = true;
-                $permissionRecord->setMetadata($permission instanceof DescribesPermission ? $permission->metadata() : null);
+                if ($permission instanceof DescribesPermission) {
+                    $permissionRecord->setMetadata($permission->metadata());
+                }
                 $permissionRecord->save();
 
                 $key = $permissionRecord->getKey();
