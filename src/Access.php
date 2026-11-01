@@ -10,18 +10,12 @@ use Maxiviper117\Access\Data\PermissionMetadata;
 use Maxiviper117\Access\Models\Permission;
 use Maxiviper117\Access\Models\Role;
 use Maxiviper117\Access\Support\PermissionNormalizer;
-use Maxiviper117\Access\Support\RoleRegistrar;
 
 class Access
 {
     public function for(Model $actor): AccessContext
     {
         return new AccessContext($actor);
-    }
-
-    public function role(string $name, bool $global = false): RoleRegistrar
-    {
-        return new RoleRegistrar($name, $global);
     }
 
     public function definePermission(

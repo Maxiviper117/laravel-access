@@ -51,8 +51,10 @@ it('stores and clears structured metadata on dynamic permission definitions', fu
         ->and($updated->ability)->toBeNull();
 });
 
-it('writes enum metadata when registering a code-defined role', function (): void {
-    Access::role('Invoice Analyst')->allows([StructuredPermission::InternalCostView]);
+it('writes enum metadata when syncing a code-defined role', function (): void {
+    config()->set('access.permission_enums', [StructuredPermission::class]);
+    config()->set('access.roles', ['Invoice Analyst' => [StructuredPermission::InternalCostView]]);
+    $this->artisan('access:sync')->assertSuccessful();
 
     $permission = Permission::query()->where('name', StructuredPermission::InternalCostView->value)->firstOrFail();
 
@@ -69,7 +71,9 @@ it('preserves permission metadata when a role references its name', function ():
         metadata: PermissionMetadata::resource('invoices', 'export'),
     );
 
-    Access::role('Invoice Analyst')->allows(['invoices.export']);
+    config()->set('access.permission_enums', [PermissionEnum::class]);
+    config()->set('access.roles', ['Invoice Analyst' => [PermissionEnum::UsersView]]);
+    $this->artisan('access:sync')->assertSuccessful();
 
     expect($permission->fresh()->resource)->toBe('invoices')
         ->and($permission->fresh()->kind)->toBe('resource')
@@ -78,9 +82,8 @@ it('preserves permission metadata when a role references its name', function ():
 
 it('preserves synced metadata when a role references its name', function (): void {
     config()->set('access.permission_enums', [StructuredPermission::class]);
+    config()->set('access.roles', ['Invoice Analyst' => ['invoices.view']]);
     $this->artisan('access:sync')->assertSuccessful();
-
-    Access::role('Invoice Analyst')->allows(['invoices.view']);
 
     $permission = Permission::query()->where('name', 'invoices.view')->firstOrFail();
     expect($permission->resource)->toBe('invoices')
@@ -91,7 +94,7 @@ it('preserves synced metadata when a role references its name', function (): voi
 it('preserves metadata when a role references an enum without metadata', function (): void {
     $permission = Access::definePermission('users.view', metadata: PermissionMetadata::resource('users', 'view'));
 
-    Access::role('Viewer')->allows([PermissionEnum::UsersView]);
+    syncTestRole('Viewer', [PermissionEnum::UsersView]);
 
     expect($permission->fresh()->resource)->toBe('users')
         ->and($permission->fresh()->ability)->toBe('view');
@@ -120,7 +123,7 @@ it('preserves preexisting permission rows as dynamic during the ownership migrat
 });
 
 it('does not allow a dynamic definition to take ownership of a configured permission', function (): void {
-    Access::role('Viewer')->allows([PermissionEnum::UsersView]);
+    syncTestRole('Viewer', [PermissionEnum::UsersView]);
 
     expect(fn () => Access::definePermission('users.view', 'View users'))
         ->toThrow(InvalidArgumentException::class, 'defined by application configuration');

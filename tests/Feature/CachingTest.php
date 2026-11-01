@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Maxiviper117\Access\Facades\Access;
 use Maxiviper117\Access\Models\Assignment;
 use Maxiviper117\Access\Support\AccessCache;
 use Maxiviper117\Access\Support\AccessChecker;
@@ -188,7 +187,7 @@ it('invalidates both scope contexts when an assignment changes scope', function 
 });
 
 it('invalidates cache when a role is assigned or removed', function (): void {
-    Access::role('Editor')->allows([Permission::UsersInvite]);
+    syncTestRole('Editor', [Permission::UsersInvite]);
 
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);

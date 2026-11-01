@@ -78,8 +78,8 @@ Keep these distinctions clear in code and docs:
 - `global_roles`: app-wide role definitions, assigned with `$user->assignGlobalRole(...)`.
 - `access:sync`: syncs permission and role definitions. It does not assign roles to users.
 - Permission definitions are app-wide. Configured definitions are system-owned; runtime definitions are retained by `access:sync --prune`.
-- `access:sync` applies static enum metadata deterministically and reports metadata changes during `--dry-run`.
-- Code-defined role registration preserves permission metadata for strings and enums without `DescribesPermission`; describing enum cases replace it, including with `null`.
+- `access:sync` applies metadata from describing enums listed in `permission_enums`; role references and non-describing enums preserve existing metadata. It reports metadata changes during `--dry-run`.
+- Configure base roles in `roles` and `global_roles`; their permission names must exist in `permission_enums`. Sync validates declarations before writes and rejects conflicting scoped/global role names.
 - Permission metadata is optional and does not grant access or change how permission names are checked.
 - Generated membership tables from `access:scope` are app state, not Laravel Access authorization tables.
 - App membership and Laravel Access role assignment are separate writes.

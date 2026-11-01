@@ -1,6 +1,5 @@
 <?php
 
-use Maxiviper117\Access\Facades\Access;
 use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 use Maxiviper117\Access\Tests\Fixtures\User;
@@ -16,7 +15,7 @@ it('returns failure and shows error when user is not found', function (): void {
 });
 
 it('displays global roles and permissions when no scope is provided', function (): void {
-    Access::role('Admin', global: true)->allows([Permission::SystemManage]);
+    syncTestRole('Admin', [Permission::SystemManage], global: true);
 
     $user = User::query()->create([
         'name' => 'David',
@@ -40,7 +39,7 @@ it('displays global roles and permissions when no scope is provided', function (
 });
 
 it('displays scoped roles and permissions when scope option is provided', function (): void {
-    Access::role('Owner')->allows([Permission::UsersInvite]);
+    syncTestRole('Owner', [Permission::UsersInvite]);
 
     $user = User::query()->create([
         'name' => 'David',

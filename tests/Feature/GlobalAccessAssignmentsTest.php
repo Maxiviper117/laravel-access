@@ -1,12 +1,11 @@
 <?php
 
-use Maxiviper117\Access\Facades\Access;
 use Maxiviper117\Access\Tests\Fixtures\Company;
 use Maxiviper117\Access\Tests\Fixtures\Permission;
 use Maxiviper117\Access\Tests\Fixtures\User;
 
 it('supports global roles and permissions', function (): void {
-    Access::role('Platform Admin', global: true)->allows([Permission::SystemManage]);
+    syncTestRole('Platform Admin', [Permission::SystemManage], global: true);
 
     $user = User::query()->create(['email' => 'david@example.com']);
 

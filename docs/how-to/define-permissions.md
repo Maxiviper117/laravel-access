@@ -74,11 +74,11 @@ Sync it:
 php artisan access:sync
 ```
 
-The sync command creates missing database rows, applies enum metadata, and reports metadata changes and stale system-owned permissions before deleting anything. Enum cases referenced by configured roles can also provide metadata. Code-defined roles registered with `Access::role(...)->allows(...)` can carry metadata through enum cases that implement `DescribesPermission`.
+The sync command creates missing database rows, applies metadata from enums listed in `permission_enums`, and reports metadata changes and stale system-owned permissions before deleting anything. Configured roles reference permissions without changing their metadata.
 
-Permission names supplied only as raw strings in role configuration remain valid and unclassified. Represent a permission as an enum case when it needs structured metadata.
+Every configured role permission must match a case in an enum listed in `permission_enums`. Unknown names fail validation before any sync writes. Enums without descriptions preserve existing metadata.
 
-Sync treats configured enum metadata as authoritative, including `null`, and marks configured permission names as system-owned. If a dynamic definition becomes configured, sync replaces its metadata. Code-defined role registration also marks referenced permissions as system-owned. It applies metadata from cases implementing `DescribesPermission`; a string or an enum without that contract leaves existing metadata unchanged. If multiple registrations describe the same name, the last registration supplies its metadata. Sync rejects conflicting configured enum descriptions.
+Sync treats metadata from configured enums that implement `DescribesPermission` as authoritative, including `null`, and marks configured permission names as system-owned. References and enums without that contract preserve existing metadata. Sync rejects conflicting configured enum descriptions, while identical descriptions are valid.
 
 `access:sync` syncs definitions only. It does not assign roles to users. After syncing, use scoped assignments such as `$user->in($company)->assignRole(...)` or global assignments such as `$user->assignGlobalRole(...)` in your application code or seeders.
 

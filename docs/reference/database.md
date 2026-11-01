@@ -24,7 +24,7 @@ created_at
 updated_at
 ```
 
-`is_system` is `true` for definitions declared in `permission_enums`, `roles`, or `global_roles`. Runtime-created permission definitions use `false`. `access:sync --prune` only removes stale system-owned definitions.
+`is_system` is `true` for definitions declared in `permission_enums`. Configured roles reference those definitions. Runtime-created permission definitions use `false`. `access:sync --prune` only removes stale system-owned definitions.
 
 The nullable `resource`, `kind`, `target`, and `ability` columns hold optional permission metadata for discovery and administration. `kind` is `resource` or `field`; `target` is null for a whole-resource permission and identifies the field for a field permission. Rows without metadata leave all four columns null. These values do not affect authorization, which continues to use the exact permission `name`.
 

@@ -1,6 +1,5 @@
 <?php
 
-use Maxiviper117\Access\Facades\Access;
 use Maxiviper117\Access\Models\Assignment;
 use Maxiviper117\Access\Models\Role;
 use Maxiviper117\Access\Tests\Fixtures\Company;
@@ -69,8 +68,8 @@ it('rejects role models that do not belong to the current scope', function (): v
 });
 
 it('lists only roles eligible for the current scope context', function (): void {
-    Access::role('Company Owner')->allows([Permission::UsersInvite]);
-    Access::role('Platform Admin', global: true)->allows([Permission::SystemManage]);
+    syncTestRole('Company Owner', [Permission::UsersInvite]);
+    syncTestRole('Platform Admin', [Permission::SystemManage], global: true);
 
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
@@ -86,7 +85,7 @@ it('lists only roles eligible for the current scope context', function (): void 
 });
 
 it('rejects global roles assigned through a scoped context', function (): void {
-    $globalRole = Access::role('Platform Admin', global: true)->allows([Permission::SystemManage]);
+    $globalRole = syncTestRole('Platform Admin', [Permission::SystemManage], global: true);
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
     $context = $user->in($company);
@@ -100,7 +99,7 @@ it('rejects global roles assigned through a scoped context', function (): void {
 });
 
 it('rejects shared scoped roles assigned through a global context', function (): void {
-    $scopedRole = Access::role('Company Owner')->allows([Permission::UsersInvite]);
+    $scopedRole = syncTestRole('Company Owner', [Permission::UsersInvite]);
     $user = User::query()->create(['email' => 'david@example.com']);
 
     expect(fn () => $user->assignGlobalRole('Company Owner'))
@@ -140,8 +139,8 @@ it('can remove roles', function (): void {
 });
 
 it('returns all unique permission names with permissions() method', function (): void {
-    Access::role('Editor')->allows([Permission::UsersInvite, Permission::UsersView]);
-    Access::role('Viewer')->allows([Permission::UsersView]);
+    syncTestRole('Editor', [Permission::UsersInvite, Permission::UsersView]);
+    syncTestRole('Viewer', [Permission::UsersView]);
 
     $user = User::query()->create(['email' => 'david@example.com']);
     $company = Company::query()->create(['name' => 'Acme']);
