@@ -11,7 +11,10 @@ Keep permission names stable. They are stored in the database and used by polici
 ```php:line-numbers
 namespace App\Enums;
 
-enum Permission: string
+use Maxiviper117\Access\Contracts\DescribesPermission;
+use Maxiviper117\Access\Data\PermissionMetadata;
+
+enum Permission: string implements DescribesPermission
 {
     case UsersView = 'users.view';
     case UsersInvite = 'users.invite';
@@ -19,7 +22,42 @@ enum Permission: string
     case RolesManage = 'roles.manage';
     case CompanyUpdate = 'company.update';
     case SystemManage = 'system.manage';
+    case UserEmailView = 'users.fields.email.view';
+
+    public function metadata(): ?PermissionMetadata
+    {
+        return match ($this) {
+            self::UsersView => PermissionMetadata::resource('users', 'view'),
+            self::CompanyUpdate => PermissionMetadata::resource('company', 'update'),
+            self::UserEmailView => PermissionMetadata::field('users', 'email', 'view'),
+            self::UsersInvite, self::UsersManage, self::RolesManage, self::SystemManage => null,
+        };
+    }
 }
+```
+
+Metadata is optional catalog information for discovery and structured administration. Use `resource()` for a whole resource or `field()` for a field on a resource. The enum can return `null` for permissions that do not need classification. Metadata does not affect authorization; permission checks continue to use the enum's exact backed value.
+
+The package does not infer metadata from the permission name or verify that the two agree. Resource and field are the supported classifications. Leave other permissions unclassified when neither fits.
+
+Field metadata does not hide fields or enforce access. Check the exact permission before returning or updating a field:
+
+```php:line-numbers
+if ($user->in($company)->can(Permission::UserEmailView)) {
+    $data['email'] = $member->email;
+}
+```
+
+Admin screens can filter the registered definitions directly:
+
+```php:line-numbers
+use Maxiviper117\Access\Models\Permission;
+
+$invoiceFields = Permission::query()
+    ->where('resource', 'invoices')
+    ->where('kind', 'field')
+    ->orderBy('name')
+    ->get();
 ```
 
 Point the package at the enum by adding it to the `permission_enums` array in `config/access.php`:
@@ -36,7 +74,11 @@ Sync it:
 php artisan access:sync
 ```
 
-The sync command creates missing database rows and reports stale system-owned permissions before deleting anything.
+The sync command creates missing database rows, applies metadata from enums listed in `permission_enums`, and reports metadata changes and stale system-owned permissions before deleting anything. Configured roles reference permissions without changing their metadata.
+
+Every configured role permission must match a case in an enum listed in `permission_enums`. Unknown names fail validation before any sync writes. Enums without descriptions preserve existing metadata.
+
+Sync treats metadata from configured enums that implement `DescribesPermission` as authoritative, including `null`, and marks configured permission names as system-owned. References and enums without that contract preserve existing metadata. Sync rejects conflicting configured enum descriptions, while identical descriptions are valid.
 
 `access:sync` syncs definitions only. It does not assign roles to users. After syncing, use scoped assignments such as `$user->in($company)->assignRole(...)` or global assignments such as `$user->assignGlobalRole(...)` in your application code or seeders.
 
@@ -58,15 +100,17 @@ When app administrators need to create permissions at runtime, define them with 
 
 ```php:line-numbers
 use Maxiviper117\Access\Facades\Access;
+use Maxiviper117\Access\Data\PermissionMetadata;
 
 $permission = Access::definePermission(
     'invoices.export',
     'Export invoices',
     'Download invoice data.',
+    PermissionMetadata::resource('invoices', 'export'),
 );
 ```
 
-This creates or updates a dynamic definition and its label and description. It does not grant the permission to anyone. Grant it separately through the scoped or global assignment APIs, or attach it to a role. Protect the app endpoint that manages definitions and grants with your own authorization policy.
+This creates or replaces a dynamic definition, its label and description, and its metadata. Each call replaces all three optional values. Omitting metadata clears existing metadata, so pass it again when updating another field. It does not grant the permission to anyone. Grant it separately through the scoped or global assignment APIs, or attach it to a role. Protect the app endpoint that manages definitions and grants with your own authorization policy.
 
 The permission name is a unique, stable key. Renaming it creates a different permission. Dynamic definitions created this way, or by the string-based role and assignment APIs, are retained by `access:sync --prune`. That command only prunes stale definitions marked as system-owned by configuration. If a dynamic name already belongs to a configured permission, `definePermission` throws instead of changing the configured definition.
 

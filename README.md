@@ -68,14 +68,7 @@ Sync enums and configured roles into the database:
 php artisan access:sync
 ```
 
-Or define roles in code with `Access::role()`:
-
-```php
-use Maxiviper117\Access\Facades\Access;
-
-Access::role('Owner')->allows([Permission::UsersView, Permission::UsersInvite]);
-Access::role('Platform Admin', global: true)->allows([Permission::SystemManage]);
-```
+Every configured role permission must exist in an enum listed in `permission_enums`. Sync rejects unknown names before writing.
 
 ## Scoped Usage
 

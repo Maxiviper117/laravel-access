@@ -36,3 +36,4 @@ testbench.yaml
 workbench/*
 .vitepress/.temp/*
 project/
+.audit/*

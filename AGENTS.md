@@ -9,6 +9,8 @@ Core ideas:
 - Scoped access is explicit: use `$user->in($scope)->...`.
 - Global access is separate: use `$user->assignGlobalRole(...)` and `$user->canGlobally(...)`.
 - Permissions are enum-first and synced into the `access_*` tables.
+- Optional permission metadata (`resource`, `kind`, `target`, `ability`) is descriptive catalog data on the existing permission row; it does not affect exact-name authorization.
+- Static enum cases can describe metadata with `DescribesPermission`; runtime definitions can pass `PermissionMetadata` to `Access::definePermission()`.
 - `permission_enums` is the active config key. Do not reintroduce the old singular `permission_enum` model.
 - `access:scope` scaffolds app-owned membership/invitation/current-scope code. It should not make Laravel Access depend on hidden tenant state.
 - `access:seeder` generates an editable starter seeder for app membership plus scoped Laravel Access assignment.
@@ -76,6 +78,9 @@ Keep these distinctions clear in code and docs:
 - `global_roles`: app-wide role definitions, assigned with `$user->assignGlobalRole(...)`.
 - `access:sync`: syncs permission and role definitions. It does not assign roles to users.
 - Permission definitions are app-wide. Configured definitions are system-owned; runtime definitions are retained by `access:sync --prune`.
+- `access:sync` applies metadata from describing enums listed in `permission_enums`; role references and non-describing enums preserve existing metadata. It reports metadata changes during `--dry-run`.
+- Configure base roles in `roles` and `global_roles`; their permission names must exist in `permission_enums`. Sync validates declarations before writes and rejects conflicting scoped/global role names.
+- Permission metadata is optional and does not grant access or change how permission names are checked.
 - Generated membership tables from `access:scope` are app state, not Laravel Access authorization tables.
 - App membership and Laravel Access role assignment are separate writes.
 

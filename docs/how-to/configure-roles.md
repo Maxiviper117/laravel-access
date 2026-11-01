@@ -85,7 +85,7 @@ The role keys and permission values are separate choices:
 
 - **Config file keys**: Because PHP array keys must be strings or integers, role keys in `config/access.php` must still use `CompanyRole::Owner->value`, `CompanyRole::Admin->value`, or `CompanyRole::Member->value`.
 - **API Methods**: When assigning, checking, or removing roles, you can pass BackedEnum instances directly (e.g., `CompanyRole::Owner`), as Laravel Access natively resolves backed enums.
-- **Permission values**: Permission values should come from one of the enums configured in `permission_enums`.
+- **Permission values**: Permission names must match cases in the enums configured in `permission_enums`. Sync rejects unknown names before writing.
 
 ## Scoped Roles
 

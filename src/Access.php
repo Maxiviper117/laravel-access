@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 use Maxiviper117\Access\Data\AccessContext;
+use Maxiviper117\Access\Data\PermissionMetadata;
 use Maxiviper117\Access\Models\Permission;
 use Maxiviper117\Access\Models\Role;
 use Maxiviper117\Access\Support\PermissionNormalizer;
-use Maxiviper117\Access\Support\RoleRegistrar;
 
 class Access
 {
@@ -18,13 +18,12 @@ class Access
         return new AccessContext($actor);
     }
 
-    public function role(string $name, bool $global = false): RoleRegistrar
-    {
-        return new RoleRegistrar($name, $global);
-    }
-
-    public function definePermission(string $name, ?string $label = null, ?string $description = null): Permission
-    {
+    public function definePermission(
+        string $name,
+        ?string $label = null,
+        ?string $description = null,
+        ?PermissionMetadata $metadata = null,
+    ): Permission {
         $name = app(PermissionNormalizer::class)->normalize($name);
         $permission = Permission::query()->firstOrCreate(
             ['name' => $name],
@@ -37,6 +36,7 @@ class Access
 
         $permission->label = $label;
         $permission->description = $description;
+        $permission->setMetadata($metadata);
         $permission->save();
 
         return $permission;

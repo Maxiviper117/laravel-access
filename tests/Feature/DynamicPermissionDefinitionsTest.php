@@ -2,10 +2,12 @@
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Maxiviper117\Access\Data\PermissionMetadata;
 use Maxiviper117\Access\Facades\Access;
 use Maxiviper117\Access\Models\Permission;
 use Maxiviper117\Access\Models\Role;
 use Maxiviper117\Access\Tests\Fixtures\Permission as PermissionEnum;
+use Maxiviper117\Access\Tests\Fixtures\StructuredPermission;
 use Maxiviper117\Access\Tests\Fixtures\User;
 
 it('defines dynamic permissions without granting them and allows metadata updates', function (): void {
@@ -29,6 +31,85 @@ it('defines dynamic permissions without granting them and allows metadata update
         ->and($updated->description)->toBeNull();
 });
 
+it('stores and clears structured metadata on dynamic permission definitions', function (): void {
+    $permission = Access::definePermission(
+        'invoices.fields.internal_cost.view',
+        'View invoice cost',
+        metadata: PermissionMetadata::field('invoices', 'internal_cost', 'view'),
+    );
+
+    expect($permission->resource)->toBe('invoices')
+        ->and($permission->kind)->toBe('field')
+        ->and($permission->target)->toBe('internal_cost')
+        ->and($permission->ability)->toBe('view');
+
+    $updated = Access::definePermission('invoices.fields.internal_cost.view', 'View invoice cost');
+
+    expect($updated->resource)->toBeNull()
+        ->and($updated->kind)->toBeNull()
+        ->and($updated->target)->toBeNull()
+        ->and($updated->ability)->toBeNull();
+});
+
+it('writes enum metadata when syncing a code-defined role', function (): void {
+    config()->set('access.permission_enums', [StructuredPermission::class]);
+    config()->set('access.roles', ['Invoice Analyst' => [StructuredPermission::InternalCostView]]);
+    $this->artisan('access:sync')->assertSuccessful();
+
+    $permission = Permission::query()->where('name', StructuredPermission::InternalCostView->value)->firstOrFail();
+
+    expect($permission->is_system)->toBeTrue()
+        ->and($permission->resource)->toBe('invoices')
+        ->and($permission->kind)->toBe('field')
+        ->and($permission->target)->toBe('internal_cost')
+        ->and($permission->ability)->toBe('view');
+});
+
+it('preserves permission metadata when a role references its name', function (): void {
+    $permission = Access::definePermission(
+        'invoices.export',
+        metadata: PermissionMetadata::resource('invoices', 'export'),
+    );
+
+    config()->set('access.permission_enums', [PermissionEnum::class]);
+    config()->set('access.roles', ['Invoice Analyst' => [PermissionEnum::UsersView]]);
+    $this->artisan('access:sync')->assertSuccessful();
+
+    expect($permission->fresh()->resource)->toBe('invoices')
+        ->and($permission->fresh()->kind)->toBe('resource')
+        ->and($permission->fresh()->ability)->toBe('export');
+});
+
+it('preserves synced metadata when a role references its name', function (): void {
+    config()->set('access.permission_enums', [StructuredPermission::class]);
+    config()->set('access.roles', ['Invoice Analyst' => ['invoices.view']]);
+    $this->artisan('access:sync')->assertSuccessful();
+
+    $permission = Permission::query()->where('name', 'invoices.view')->firstOrFail();
+    expect($permission->resource)->toBe('invoices')
+        ->and($permission->kind)->toBe('resource')
+        ->and($permission->ability)->toBe('view');
+});
+
+it('preserves metadata when a role references an enum without metadata', function (): void {
+    $permission = Access::definePermission('users.view', metadata: PermissionMetadata::resource('users', 'view'));
+
+    syncTestRole('Viewer', [PermissionEnum::UsersView]);
+
+    expect($permission->fresh()->resource)->toBe('users')
+        ->and($permission->fresh()->ability)->toBe('view');
+});
+
+it('rejects empty metadata identifiers', function (): void {
+    expect(fn () => PermissionMetadata::field('invoices', ' ', 'view'))
+        ->toThrow(InvalidArgumentException::class, 'Permission metadata target cannot be empty.');
+});
+
+it('rejects metadata identifiers that exceed the database column length', function (): void {
+    expect(fn () => PermissionMetadata::resource(str_repeat('a', 256), 'view'))
+        ->toThrow(InvalidArgumentException::class, 'Permission metadata resource cannot exceed 255 characters.');
+});
+
 it('preserves preexisting permission rows as dynamic during the ownership migration', function (): void {
     $permission = Permission::query()->create(['name' => 'legacy.export']);
 
@@ -42,7 +123,7 @@ it('preserves preexisting permission rows as dynamic during the ownership migrat
 });
 
 it('does not allow a dynamic definition to take ownership of a configured permission', function (): void {
-    Access::role('Viewer')->allows([PermissionEnum::UsersView]);
+    syncTestRole('Viewer', [PermissionEnum::UsersView]);
 
     expect(fn () => Access::definePermission('users.view', 'View users'))
         ->toThrow(InvalidArgumentException::class, 'defined by application configuration');
