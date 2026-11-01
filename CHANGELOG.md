@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/Maxiviper117/laravel-access/compare/v0.1.10...v0.1.11) (2026-11-01)
+
+
+### Features
+
+* validate access definitions and add permission metadata ([#54](https://github.com/Maxiviper117/laravel-access/issues/54)) ([02910c3](https://github.com/Maxiviper117/laravel-access/commit/02910c32def9d2d471d4326835e1320095be7e11))
+
 ## [0.1.10](https://github.com/Maxiviper117/laravel-access/compare/v0.1.9...v0.1.10) (2026-10-11)
 
 
